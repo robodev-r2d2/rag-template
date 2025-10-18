@@ -156,13 +156,17 @@ If you want to replace some dependencies with you own dependencies, see the serv
 
 ### 1.4 Local setup instructions
 
-The following is a list of the dependencies. If you miss one of the dependencies, click on the name and follow the install instructions.
+You can run the full stack locally either with Docker Compose (using the prebuilt container images) or with the original k3d + Helm + Tilt workflow (for a local Kubernetes environment with live-reload support). Both options remain first-class citizens—choose whichever best matches how you want to iterate on the project.
 
-- [*k3d*](https://k3d.io/v5.6.0/#installation)
-- [*helm*](https://helm.sh/docs/intro/install/)
-- [*tilt*](https://docs.tilt.dev/install.html)
+Install the tooling that corresponds to your chosen workflow and follow their linked documentation for setup details:
 
-For local deployment, a few env variables need to be provided by an `.env` file (here: .)
+- [Docker Engine 24+](https://docs.docker.com/engine/) *(Docker Compose workflow)*
+- [Docker Compose Plugin](https://docs.docker.com/compose/install/) *(Docker Compose workflow; bundled with Docker Desktop)*
+- [*k3d*](https://k3d.io/v5.6.0/#installation) *(k3d/Tilt workflow)*
+- [*helm*](https://helm.sh/docs/intro/install/) *(k3d/Tilt workflow)*
+- [*tilt*](https://docs.tilt.dev/install.html) *(k3d/Tilt workflow)*
+
+Regardless of the orchestration method, shared environment variables must be provided via an `.env` file located at the repository root.
 
 The `.env` needs to contain the following values:
 
@@ -185,6 +189,17 @@ STACKIT_EMBEDDER_API_KEY=...
 # or be created via the langfuse UI.
 LANGFUSE_PUBLIC_KEY=pk-lf-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 LANGFUSE_SECRET_KEY=sk-lf-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Optional but recommended overrides for the bundled Langfuse stack
+LANGFUSE_NEXTAUTH_SECRET=...
+LANGFUSE_SALT=...
+LANGFUSE_INIT_ORG_ID=...
+LANGFUSE_INIT_PROJECT_ID=...
+LANGFUSE_INIT_PROJECT_PUBLIC_KEY=...
+LANGFUSE_INIT_PROJECT_SECRET_KEY=...
+LANGFUSE_INIT_USER_EMAIL=...
+LANGFUSE_INIT_USER_NAME=...
+LANGFUSE_INIT_USER_PASSWORD=...
 
 ```
 
@@ -211,11 +226,51 @@ Edit the `.env` file with your actual configuration values. The [`.env.template`
 
 In the following, the *k3d* cluster setup and the setup inside the *k3d* will be explained.
 
-#### 1.4.2 *k3d* cluster setup
+#### 1.4.2 Docker Compose deployment
+
+The fastest way to spin up the full local stack (including Langfuse, Qdrant, KeyDB and MinIO) is via the provided [`docker-compose.yaml`](./docker-compose.yaml).
+
+Requirements:
+
+- [Docker Engine 24+](https://docs.docker.com/engine/)
+- [Docker Compose Plugin](https://docs.docker.com/compose/install/) (shipped with Docker Desktop)
+
+Once the `.env` file is in place, start the full stack from the repository root:
+
+```bash
+docker compose up -d
+```
+
+The command provisions all containers, creates the required S3 buckets inside MinIO and seeds persistent data volumes. On the first start it can take a couple of minutes until Langfuse has run its migrations and the Python services have finished installing the required NLTK resources.
+
+Useful endpoints after a successful start:
+
+- Chat frontend: [http://localhost:8080](http://localhost:8080)
+- Admin frontend: [http://localhost:8081](http://localhost:8081)
+- Backend API: [http://localhost:8082/api/docs](http://localhost:8082/api/docs)
+- Admin API: [http://localhost:8083/api/docs](http://localhost:8083/api/docs)
+- Langfuse UI: [http://localhost:3100](http://localhost:3100)
+- MinIO console: [http://localhost:9001](http://localhost:9001)
+
+Shut down the stack with:
+
+```bash
+docker compose down
+```
+
+To remove all persistent data (Qdrant collections, Langfuse Postgres/ClickHouse data, MinIO objects, …) append `-v` to the command above.
+
+> 📝  *Troubleshooting tips*
+>
+> - Ensure that the values for `STACKIT_VLLM_API_KEY`, `STACKIT_EMBEDDER_API_KEY` and `RAGAS_OPENAI_API_KEY` are valid – the backend performs live calls during start-up.
+> - If you want to bootstrap Langfuse with predefined credentials, fill in the optional `LANGFUSE_INIT_*` variables. Otherwise you can create a user and project through the Langfuse UI once the containers are running.
+> - The compose setup mirrors the Helm defaults, including optional services such as MinIO and the MCP server. If you need to disable a component you can edit the compose file accordingly.
+
+#### 1.4.3 *k3d* cluster setup
 
 For a detailed explanation of the *k3d* setup, please consult the [infrastructure README](./infrastructure/README.md).
 
-#### 1.4.3 Tilt deployment
+#### 1.4.4 Tilt deployment
 
 If this is the first time you are starting the `Tiltfile` you have to build the helm-chart first.
 This can be done with the following command from the root of the git-repository:
@@ -362,7 +417,7 @@ The following will delete everything deployed with `tilt up` command
 tilt down
 ```
 
-#### 1.4.4 Access via ingress
+#### 1.4.5 Access via ingress
 
 A detailed explanation of, how to access a service via ingress, can be found in the [infrastructure README](./infrastructure/README.md).
 
