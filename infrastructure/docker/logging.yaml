@@ -1,0 +1,28 @@
+version: 1
+
+formatters:
+  format:
+    style: '{'
+    format: '[{levelname}] : {asctime} : {name} : line {lineno} : {message}'
+    datefmt: '%d-%b-%Y %H:%M:%S'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: format
+    stream: ext://sys.stdout
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: format
+    filename: log/logfile.log
+    mode: w
+
+disable_existing_loggers: False
+capture_warnings: True
+
+loggers:
+  root:
+    level: DEBUG
+    handlers: [console, file]

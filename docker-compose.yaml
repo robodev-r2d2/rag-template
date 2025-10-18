@@ -1,0 +1,368 @@
+version: "3.9"
+
+x-retry-env: &retry_env
+  RETRY_DECORATOR_MAX_RETRIES: "5"
+  RETRY_DECORATOR_RETRY_BASE_DELAY: "0.5"
+  RETRY_DECORATOR_RETRY_MAX_DELAY: "600"
+  RETRY_DECORATOR_BACKOFF_FACTOR: "2"
+  RETRY_DECORATOR_ATTEMPT_CAP: "6"
+  RETRY_DECORATOR_JITTER_MIN: "0.05"
+  RETRY_DECORATOR_JITTER_MAX: "0.25"
+
+x-s3-env: &s3_env
+  S3_ENDPOINT: http://rag-minio:9000
+  S3_BUCKET: documents
+
+x-backend-env: &backend_env
+  VECTOR_DB_COLLECTION_NAME: rag-db
+  VECTOR_DB_LOCATION: http://rag-qdrant:6333
+  VECTOR_DB_VALIDATE_COLLECTION_CONFIG: "false"
+  RETRIEVER_THRESHOLD: "0.3"
+  RETRIEVER_K_DOCUMENTS: "10"
+  RETRIEVER_TOTAL_K: "7"
+  RETRIEVER_SUMMARY_THRESHOLD: "0.3"
+  RETRIEVER_SUMMARY_K_DOCUMENTS: "10"
+  RETRIEVER_TABLE_THRESHOLD: "0.3"
+  RETRIEVER_TABLE_K_DOCUMENTS: "10"
+  RETRIEVER_IMAGE_THRESHOLD: "0.7"
+  RETRIEVER_IMAGE_K_DOCUMENTS: "10"
+  ERROR_MESSAGES_NO_DOCUMENTS_MESSAGE: "I'm sorry, my responses are limited. You must ask the right questions."
+  ERROR_MESSAGES_NO_OR_EMPTY_COLLECTION: "No documents were provided for searching."
+  ERROR_MESSAGES_HARMFUL_QUESTION: "I'm sorry, but harmful requests cannot be processed."
+  ERROR_MESSAGES_NO_ANSWER_FOUND: "I'm sorry, I couldn't find an answer with the context provided."
+  ERROR_MESSAGE_EMPTY_MESSAGE: "I'm sorry, but I can't answer an empty question."
+  LANGFUSE_DATASET_NAME: rag_test_ds
+  LANGFUSE_DATASET_FILENAME: /app/test_data.json
+  LANGFUSE_HOST: http://rag-langfuse-web:3000
+  RAG_CLASS_TYPE_LLM_TYPE: stackit
+  RAGAS_IS_DEBUG: "false"
+  RAGAS_MODEL: gpt-4o-mini
+  RAGAS_USE_OPENAI: "true"
+  RAGAS_TIMEOUT: "60"
+  RAGAS_EVALUATION_DATASET_NAME: eval-data
+  RAGAS_MAX_CONCURRENCY: "5"
+  EMBEDDER_CLASS_TYPE_EMBEDDER_TYPE: stackit
+  STACKIT_EMBEDDER_MODEL: intfloat/e5-mistral-7b-instruct
+  STACKIT_EMBEDDER_BASE_URL: https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1
+  STACKIT_EMBEDDER_MAX_RETRIES: "5"
+  STACKIT_EMBEDDER_RETRY_BASE_DELAY: "0.5"
+  STACKIT_EMBEDDER_RETRY_MAX_DELAY: "600"
+  STACKIT_EMBEDDER_BACKOFF_FACTOR: "2"
+  STACKIT_EMBEDDER_ATTEMPT_CAP: "6"
+  STACKIT_EMBEDDER_JITTER_MIN: "0.05"
+  STACKIT_EMBEDDER_JITTER_MAX: "0.25"
+  STACKIT_VLLM_MODEL: cortecs/Llama-3.3-70B-Instruct-FP8-Dynamic
+  STACKIT_VLLM_BASE_URL: https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1
+  OLLAMA_MODEL: llama3.2:3b-instruct-fp16
+  OLLAMA_BASE_URL: http://rag-ollama:11434
+  OLLAMA_TOP_K: "0"
+  OLLAMA_TOP_P: "0"
+  OLLAMA_TEMPERATURE: "0"
+  OLLAMA_EMBEDDER_MODEL: bge-m3
+  OLLAMA_EMBEDDER_BASE_URL: http://rag-ollama:11434
+  FAKE_EMBEDDER_SIZE: "386"
+  RERANKER_K_DOCUMENTS: "5"
+  RERANKER_MIN_RELEVANCE_SCORE: "0.001"
+  CHAT_HISTORY_LIMIT: "4"
+  CHAT_HISTORY_REVERSE: "true"
+
+services:
+  rag-backend:
+    image: ghcr.io/stackitcloud/rag-template/rag-backend:v2.3.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      touch /app/services/rag-backend/log/logfile.log &&
+      chmod 600 /app/services/rag-backend/log/logfile.log &&
+      exec poetry run python -m uvicorn main:perfect_rag_app --host 0.0.0.0 --port 8080 --loop asyncio --workers 3 --ws-max-queue 6
+    env_file:
+      - .env
+    environment:
+      <<: *backend_env
+      <<: *retry_env
+      PYTHONPATH: src
+    volumes:
+      - ./infrastructure/docker/logging.yaml:/config/logging.yaml:ro
+      - rag-backend-logs:/app/services/rag-backend/log
+    tmpfs:
+      - /tmp
+    depends_on:
+      - rag-qdrant
+      - rag-keydb
+      - rag-langfuse-web
+      - rag-minio
+    ports:
+      - "8082:8080"
+
+  rag-mcp:
+    image: ghcr.io/stackitcloud/rag-template/mcp-server:v2.3.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      touch /app/services/mcp-server/log/logfile.log &&
+      chmod 600 /app/services/mcp-server/log/logfile.log &&
+      exec poetry run python -m uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    environment:
+      BACKEND_BASE_PATH: http://rag-backend:8080
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8000"
+      MCP_NAME: mcp
+      MCP_CHAT_SIMPLE_DESCRIPTION: |
+        Send a message to the RAG system and get a simple text response.
+
+        This is the simplest way to interact with the RAG system - just provide a message and get back the answer as plain text.
+      MCP_CHAT_SIMPLE_PARAMETER_DESCRIPTIONS: '{"session_id":"Unique identifier for the chat session.","message":"The message/question to ask the RAG system."}'
+      MCP_CHAT_SIMPLE_RETURNS: The answer from the RAG system as plain text.
+      MCP_CHAT_SIMPLE_NOTES: ""
+      MCP_CHAT_SIMPLE_EXAMPLES: ""
+      MCP_CHAT_WITH_HISTORY_DESCRIPTION: |
+        Send a message with conversation history and get structured response.
+
+        Provide conversation history as a simple list of dictionaries.
+        Each history item should have 'role' (either 'user' or 'assistant') and 'message' keys.
+      MCP_CHAT_WITH_HISTORY_PARAMETER_DESCRIPTIONS: '{"session_id":"Unique identifier for the chat session.","message":"The current message/question to ask.","history":"Previous conversation history. Each item should be: {\"role\": \"user\" or \"assistant\", \"message\": \"the message text\"}"}'
+      MCP_CHAT_WITH_HISTORY_RETURNS: |
+        Response containing:
+          - answer: The response text
+          - finish_reason: Why the response ended
+          - citations: List of source documents used (simplified)
+      MCP_CHAT_WITH_HISTORY_NOTES: ""
+      MCP_CHAT_WITH_HISTORY_EXAMPLES: ""
+      LOGGING_DIRECTORY: /config/logging.yaml
+    volumes:
+      - ./infrastructure/docker/logging.yaml:/config/logging.yaml:ro
+      - rag-mcp-logs:/app/services/mcp-server/log
+    tmpfs:
+      - /tmp
+    depends_on:
+      - rag-backend
+    ports:
+      - "8000:8000"
+
+  admin-backend:
+    image: ghcr.io/stackitcloud/rag-template/admin-backend:v2.3.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      touch /app/services/admin-backend/log/logfile.log &&
+      chmod 600 /app/services/admin-backend/log/logfile.log &&
+      exec poetry run python -m uvicorn main:perfect_admin_app --host 0.0.0.0 --port 8080 --root-path /api
+    env_file:
+      - .env
+    environment:
+      <<: *retry_env
+      <<: *s3_env
+      PYTHONPATH: src
+      SUMMARIZER_MAXIMUM_INPUT_SIZE: "8000"
+      SUMMARIZER_MAXIMUM_CONCURRENCY: "10"
+      SUMMARIZER_MAX_RETRIES: "5"
+      SUMMARIZER_RETRY_BASE_DELAY: "0.5"
+      SUMMARIZER_RETRY_MAX_DELAY: "600"
+      SUMMARIZER_BACKOFF_FACTOR: "2"
+      SUMMARIZER_ATTEMPT_CAP: "6"
+      SUMMARIZER_JITTER_MIN: "0.05"
+      SUMMARIZER_JITTER_MAX: "0.25"
+      RAG_API_HOST: http://rag-backend:8080
+      CHUNKER_MAX_SIZE: "1000"
+      CHUNKER_OVERLAP: "300"
+      USECASE_KEYVALUE_PORT: "6379"
+      USECASE_KEYVALUE_HOST: rag-keydb
+      SOURCE_UPLOADER_TIMEOUT: "3600"
+      LANGFUSE_DATASET_NAME: rag_test_ds
+      LANGFUSE_DATASET_FILENAME: /app/test_data.json
+      LANGFUSE_HOST: http://rag-langfuse-web:3000
+      RAG_CLASS_TYPE_LLM_TYPE: stackit
+      STACKIT_VLLM_MODEL: cortecs/Llama-3.3-70B-Instruct-FP8-Dynamic
+      STACKIT_VLLM_BASE_URL: https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1
+      OLLAMA_MODEL: llama3.2:3b-instruct-fp16
+      OLLAMA_BASE_URL: http://rag-ollama:11434
+      OLLAMA_TOP_K: "0"
+      OLLAMA_TOP_P: "0"
+      OLLAMA_TEMPERATURE: "0"
+      OLLAMA_EMBEDDER_MODEL: bge-m3
+      OLLAMA_EMBEDDER_BASE_URL: http://rag-ollama:11434
+      STACKIT_EMBEDDER_MODEL: intfloat/e5-mistral-7b-instruct
+      STACKIT_EMBEDDER_BASE_URL: https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1
+      STACKIT_EMBEDDER_MAX_RETRIES: "5"
+      STACKIT_EMBEDDER_RETRY_BASE_DELAY: "0.5"
+      STACKIT_EMBEDDER_RETRY_MAX_DELAY: "600"
+      STACKIT_EMBEDDER_BACKOFF_FACTOR: "2"
+      STACKIT_EMBEDDER_ATTEMPT_CAP: "6"
+      STACKIT_EMBEDDER_JITTER_MIN: "0.05"
+      STACKIT_EMBEDDER_JITTER_MAX: "0.25"
+      FAKE_EMBEDDER_SIZE: "386"
+    volumes:
+      - ./infrastructure/docker/logging.yaml:/config/logging.yaml:ro
+      - admin-backend-logs:/app/services/admin-backend/log
+    tmpfs:
+      - /tmp
+    depends_on:
+      - rag-backend
+      - rag-minio
+      - rag-keydb
+    ports:
+      - "8083:8080"
+
+  document-extractor:
+    image: ghcr.io/stackitcloud/rag-template/document-extractor:v2.3.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      touch /app/services/document-extractor/log/logfile.log &&
+      chmod 600 /app/services/document-extractor/log/logfile.log &&
+      python -m nltk.downloader -d /home/nonroot/nltk_data punkt_tab averaged_perceptron_tagger_eng &&
+      exec poetry run python -m uvicorn main:perfect_extractor_app --host 0.0.0.0 --port 8080
+    env_file:
+      - .env
+    environment:
+      <<: *retry_env
+      <<: *s3_env
+      PYTHONPATH: src
+      NLTK_DATA: /home/nonroot/nltk_data
+      PDF_EXTRACTOR_DIAGRAMS_FOLDER_NAME: connection_diagrams
+      PDF_EXTRACTOR_FOOTER_HEIGHT: "155"
+    volumes:
+      - ./infrastructure/docker/logging.yaml:/config/logging.yaml:ro
+      - extractor-logs:/app/services/document-extractor/log
+      - extractor-nltk:/home/nonroot/nltk_data
+    tmpfs:
+      - /tmp
+    depends_on:
+      - rag-minio
+    ports:
+      - "8084:8080"
+
+  frontend:
+    image: ghcr.io/stackitcloud/rag-template/frontend:v2.3.0
+    env_file:
+      - .env
+    environment:
+      VITE_CHAT_AUTH_ENABLED: "true"
+      VITE_API_URL: http://localhost:8082/api
+      VITE_CHAT_URL: http://localhost:8080
+      VITE_ADMIN_URL: http://localhost:8081
+      VITE_ADMIN_API_URL: http://localhost:8083/api
+    volumes:
+      - frontend-cache:/usr/share/nginx/html
+    depends_on:
+      - rag-backend
+      - admin-backend
+    ports:
+      - "8080:8080"
+
+  admin-frontend:
+    image: ghcr.io/stackitcloud/rag-template/admin-frontend:v2.3.0
+    env_file:
+      - .env
+    volumes:
+      - admin-frontend-cache:/usr/share/nginx/html
+    depends_on:
+      - admin-backend
+    ports:
+      - "8081:8080"
+
+  rag-qdrant:
+    image: qdrant/qdrant:v1.15.4
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+    volumes:
+      - rag-qdrant-data:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  rag-keydb:
+    image: eqalpha/keydb:x86_64_v6.3.2
+    command: keydb-server --server-threads 2 --active-replica no
+    volumes:
+      - rag-keydb-data:/data
+    ports:
+      - "6379:6379"
+
+  rag-minio:
+    image: bitnamilegacy/minio:2024.6.4
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: adminpassword
+      MINIO_DEFAULT_BUCKETS: documents,langfuse
+    volumes:
+      - rag-minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  rag-postgresql:
+    image: bitnamilegacy/postgresql:16.4.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: langfuse
+    volumes:
+      - rag-postgres-data:/bitnami/postgresql
+    ports:
+      - "5432:5432"
+
+  rag-clickhouse:
+    image: bitnamilegacy/clickhouse:24.3.1
+    environment:
+      CLICKHOUSE_ADMIN_USER: default
+      CLICKHOUSE_ADMIN_PASSWORD: changeme
+      CLICKHOUSE_HTTP_PORT: "8123"
+      CLICKHOUSE_TCP_PORT: "9000"
+      CLICKHOUSE_DEFAULT_DATABASE: langfuse
+    volumes:
+      - rag-clickhouse-data:/bitnami/clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
+  rag-langfuse-web:
+    image: langfuse/langfuse:3.115.0
+    depends_on:
+      - rag-postgresql
+      - rag-clickhouse
+      - rag-keydb
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@rag-postgresql:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3100
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-changeme}
+      SALT: ${LANGFUSE_SALT:-changeme}
+      REDIS_CONNECTION_STRING: redis://rag-keydb:6379
+      CLICKHOUSE_MIGRATION_URL: http://default:changeme@rag-clickhouse:8123
+      CLICKHOUSE_URL: http://default:changeme@rag-clickhouse:8123
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-}
+    ports:
+      - "3100:3000"
+
+  rag-langfuse-worker:
+    image: langfuse/langfuse-worker:3.115.0
+    depends_on:
+      - rag-langfuse-web
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@rag-postgresql:5432/langfuse
+      CLICKHOUSE_URL: http://default:changeme@rag-clickhouse:8123
+      REDIS_CONNECTION_STRING: redis://rag-keydb:6379
+    restart: unless-stopped
+
+volumes:
+  rag-backend-logs:
+  rag-mcp-logs:
+  admin-backend-logs:
+  extractor-logs:
+  extractor-nltk:
+  frontend-cache:
+  admin-frontend-cache:
+  rag-qdrant-data:
+  rag-keydb-data:
+  rag-minio-data:
+  rag-postgres-data:
+  rag-clickhouse-data:
