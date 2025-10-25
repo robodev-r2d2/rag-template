@@ -21,6 +21,7 @@ from admin_api_lib.models.status import Status
 from admin_api_lib.impl.key_db.file_status_key_value_store import FileStatusKeyValueStore
 from admin_api_lib.information_enhancer.information_enhancer import InformationEnhancer
 from admin_api_lib.utils.utils import sanitize_document_name
+from rag_core_lib.impl.settings.access_control_settings import AccessControlSettings
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class DefaultFileUploader(FileUploader):
         rag_api: RagApi,
         information_mapper: InformationPiece2Document,
         file_service: FileService,
+        access_control_settings: AccessControlSettings,
     ):
         """
         Initialize the DefaultFileUploader.
@@ -71,6 +73,7 @@ class DefaultFileUploader(FileUploader):
         self._document_deleter = document_deleter
         self._background_tasks = []
         self._file_service = file_service
+        self._access_settings = access_control_settings
 
     async def upload_file(
         self,
@@ -183,6 +186,12 @@ class DefaultFileUploader(FileUploader):
 
             enhanced_documents = await self._information_enhancer.ainvoke(chunked_documents)
             self._add_file_url(file_name, base_url, enhanced_documents)
+
+            for document in enhanced_documents:
+                document.metadata.setdefault(
+                    self._access_settings.metadata_key,
+                    [self._access_settings.default_group],
+                )
 
             rag_information_pieces = [
                 self._information_mapper.document2rag_information_piece(doc) for doc in enhanced_documents

@@ -21,12 +21,9 @@ from rag_core_api.impl.answer_generation_chains.answer_generation_chain import (
 from rag_core_api.impl.answer_generation_chains.rephrasing_chain import RephrasingChain
 from rag_core_api.impl.answer_generation_chains.language_detection_chain import LanguageDetectionChain
 from rag_core_api.impl.api_endpoints.default_chat import DefaultChat
-from rag_core_api.impl.api_endpoints.default_information_pieces_remover import (
-    DefaultInformationPiecesRemover,
-)
-from rag_core_api.impl.api_endpoints.default_information_pieces_uploader import (
-    DefaultInformationPiecesUploader,
-)
+from rag_core_api.impl.api_endpoints.default_document_access_manager import DefaultDocumentAccessManager
+from rag_core_api.impl.api_endpoints.default_information_pieces_remover import DefaultInformationPiecesRemover
+from rag_core_api.impl.api_endpoints.default_information_pieces_uploader import DefaultInformationPiecesUploader
 from rag_core_api.impl.embeddings.langchain_community_embedder import (
     LangchainCommunityEmbedder,
 )
@@ -60,6 +57,7 @@ from rag_core_api.prompt_templates.question_rephrasing_prompt import (
 )
 from rag_core_api.prompt_templates.language_detection_prompt import LANGUAGE_DETECTION_PROMPT
 from rag_core_lib.impl.data_types.content_type import ContentType
+from rag_core_lib.impl.settings.access_control_settings import AccessControlSettings
 from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
 from rag_core_lib.impl.llms.llm_factory import chat_model_provider
 from rag_core_lib.impl.settings.langfuse_settings import LangfuseSettings
@@ -79,6 +77,7 @@ class DependencyContainer(DeclarativeContainer):
 
     # Settings
     vector_database_settings = VectorDatabaseSettings()
+    access_control_settings = AccessControlSettings()
     retriever_settings = RetrieverSettings()
     ollama_settings = OllamaSettings()
     ollama_embedder_settings = OllamaEmbedderSettings()
@@ -136,6 +135,11 @@ class DependencyContainer(DeclarativeContainer):
     information_pieces_uploader = Singleton(DefaultInformationPiecesUploader, vector_database)
 
     information_pieces_remover = Singleton(DefaultInformationPiecesRemover, vector_database)
+    document_access_manager = Singleton(
+        DefaultDocumentAccessManager,
+        vector_database,
+        access_control_settings,
+    )
 
     image_retriever = Singleton(
         RetrieverQuark,

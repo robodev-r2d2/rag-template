@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-keycloak-realm
+data:
+  realm.json: |
+    {
+      "realm": "rag",
+      "enabled": true,
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "roles": {
+        "realm": [
+          {"name": "rag-admin"},
+          {"name": "rag-user"}
+        ]
+      },
+      "groups": [
+        {"name": "public"},
+        {"name": "finance"},
+        {"name": "engineering"}
+      ],
+      "clients": [
+        {
+          "clientId": "rag-backend",
+          "secret": "rag-backend-secret",
+          "enabled": true,
+          "publicClient": false,
+          "protocol": "openid-connect",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": true,
+          "directAccessGrantsEnabled": true,
+          "redirectUris": ["*"],
+          "defaultClientScopes": ["profile", "email", "roles"]
+        }
+      ]
+    }

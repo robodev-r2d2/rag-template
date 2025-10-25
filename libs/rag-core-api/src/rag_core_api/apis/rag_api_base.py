@@ -9,6 +9,8 @@ from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
+from rag_core_api.security.models import UserContext
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 
 
 class BaseRagApi:
@@ -33,6 +35,7 @@ class BaseRagApi:
         self,
         session_id: str,
         chat_request: ChatRequest,
+        user_context: UserContext,
     ) -> ChatResponse:
         """
         Asynchronously handles the chat endpoint for the RAG API.
@@ -54,6 +57,7 @@ class BaseRagApi:
 
     async def evaluate(
         self,
+        user_context: UserContext,
     ) -> None:
         """
         Asynchronously evaluate the RAG.
@@ -66,6 +70,7 @@ class BaseRagApi:
     async def remove_information_piece(
         self,
         delete_request: DeleteRequest,
+        user_context: UserContext,
     ) -> None:
         """
         Asynchronously removes information pieces.
@@ -85,7 +90,16 @@ class BaseRagApi:
     async def upload_information_piece(
         self,
         information_piece: List[InformationPiece],
+        user_context: UserContext,
     ) -> None:
+
+    async def update_document_access(
+        self,
+        document_id: str,
+        update: DocumentAccessUpdate,
+        user_context: UserContext,
+    ) -> None:
+        """Update the access control configuration for a document."""
         """
         Asynchronously uploads information pieces for vectordatabase.
 

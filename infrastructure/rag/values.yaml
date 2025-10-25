@@ -18,6 +18,23 @@ features:
     enabled: true
   mcp:
     enabled: true
+keycloak:
+  auth:
+    adminUser: admin
+    adminPassword: admin
+  production: false
+  extraEnvVars:
+    - name: KEYCLOAK_IMPORT
+      value: /realm/realm.json
+  extraVolumes:
+    - name: realm-config
+      configMap:
+        name: rag-keycloak-realm
+  extraVolumeMounts:
+    - name: realm-config
+      mountPath: /realm
+      readOnly: true
+    enabled: true
 
 backend:
 
@@ -154,6 +171,8 @@ backend:
       apiKey: "sk-123"
     ragas:
       openaiApikey: ""
+    keycloak:
+      introspectionClientSecret: "rag-backend-secret"
 
   envs:
     stackitVllm:
@@ -198,6 +217,21 @@ backend:
       STACKIT_EMBEDDER_MODEL: "intfloat/e5-mistral-7b-instruct"
       STACKIT_EMBEDDER_BASE_URL: https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1
       # Retry settings (optional). If omitted, fall back to shared RETRY_DECORATOR_* values.
+    accessControl:
+      ACCESS_CONTROL_METADATA_KEY: access_groups
+      ACCESS_CONTROL_DEFAULT_GROUP: public
+      ACCESS_CONTROL_PUBLIC_GROUP: public
+      ACCESS_CONTROL_ROLE_PREFIX: "role:"
+    keycloak:
+      KEYCLOAK_ENABLED: "true"
+      KEYCLOAK_ENFORCE: "true"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak:8080"
+      KEYCLOAK_REALM: rag
+      KEYCLOAK_RESOURCE_CLIENT_ID: rag-backend
+      KEYCLOAK_INTROSPECTION_CLIENT_ID: rag-backend
+      KEYCLOAK_EXPECTED_AUDIENCE: rag-backend
+      KEYCLOAK_GROUPS_CLAIM: groups
+      KEYCLOAK_ADMIN_ROLE: rag-admin
       STACKIT_EMBEDDER_MAX_RETRIES: "5"
       STACKIT_EMBEDDER_RETRY_BASE_DELAY: "0.5"
       STACKIT_EMBEDDER_RETRY_MAX_DELAY: "600"

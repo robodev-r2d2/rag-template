@@ -32,6 +32,7 @@ from admin_api_lib.apis.admin_api_base import BaseAdminApi
 from admin_api_lib.models.document_status import DocumentStatus
 from admin_api_lib.models.http_validation_error import HTTPValidationError
 from admin_api_lib.models.key_value_pair import KeyValuePair
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 from admin_api_lib.models.extra_models import TokenModel  # noqa: F401
 
 router = APIRouter()
@@ -195,3 +196,23 @@ async def upload_source(
     if not BaseAdminApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
     return await BaseAdminApi.subclasses[0]().upload_source(source_type, name, key_value_pair)
+
+
+@router.post(
+    "/documents/{identification}/access",
+    responses={
+        202: {"description": "Accepted"},
+        403: {"description": "Forbidden"},
+        500: {"description": "Internal server error"},
+    },
+    tags=["admin"],
+    summary="Update document access",
+    response_model_by_alias=True,
+)
+async def update_document_access(
+    identification: StrictStr = Path(..., description="Identifier of the document."),
+    update: DocumentAccessUpdate = Body(..., description="Desired access groups."),
+) -> None:
+    if not BaseAdminApi.subclasses:
+        raise HTTPException(status_code=500, detail="Not implemented")
+    return await BaseAdminApi.subclasses[0]().update_document_access(identification, update)

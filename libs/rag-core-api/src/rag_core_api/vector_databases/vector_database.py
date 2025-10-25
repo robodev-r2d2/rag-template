@@ -128,3 +128,9 @@ class VectorDatabase(ABC):
             If the method is not implemented.
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    def update_access_groups(self, document_id: str, access_groups: list[str], metadata_key: str) -> None:
+        """Update metadata that controls document level access."""
+
+        raise NotImplementedError()

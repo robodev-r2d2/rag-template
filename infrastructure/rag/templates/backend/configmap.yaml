@@ -137,6 +137,24 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: {{ template "configmap.accessControlName" . }}
+data:
+  {{- range $key, $value := .Values.backend.envs.accessControl }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "configmap.keycloakName" . }}
+data:
+  {{- range $key, $value := .Values.backend.envs.keycloak }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: {{ template "configmap.mcp" . }}
 data:
   MCP_PORT: {{ .Values.backend.mcp.port | quote }}

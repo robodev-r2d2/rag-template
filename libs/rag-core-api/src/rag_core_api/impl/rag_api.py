@@ -8,10 +8,9 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import Depends
 
 from rag_core_api.api_endpoints.chat import Chat
+from rag_core_api.api_endpoints.document_access_manager import DocumentAccessManager
 from rag_core_api.api_endpoints.information_piece_remover import InformationPieceRemover
-from rag_core_api.api_endpoints.information_piece_uploader import (
-    InformationPiecesUploader,
-)
+from rag_core_api.api_endpoints.information_piece_uploader import InformationPiecesUploader
 from rag_core_api.apis.rag_api_base import BaseRagApi
 from rag_core_api.dependency_container import DependencyContainer
 from rag_core_api.evaluator.evaluator import Evaluator
@@ -19,6 +18,8 @@ from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
+from rag_core_api.security.models import UserContext
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class RagApi(BaseRagApi):
         self,
         session_id: str,
         chat_request: ChatRequest,
+        user_context: UserContext,
         chat_endpoint: Chat = Depends(Provide[DependencyContainer.chat_endpoint]),
     ) -> ChatResponse:
         """
@@ -61,11 +63,12 @@ class RagApi(BaseRagApi):
         ChatResponse
             The chat response if the chat task completes successfully.
         """
-        return await chat_endpoint.achat(session_id, chat_request)
+        return await chat_endpoint.achat(session_id, chat_request, user_context)
 
     @inject
     async def evaluate(
         self,
+        user_context: UserContext,
         evaluator: Evaluator = Depends(Provide[DependencyContainer.evaluator]),
     ) -> None:
         """
@@ -94,6 +97,7 @@ class RagApi(BaseRagApi):
     async def remove_information_piece(
         self,
         delete_request: DeleteRequest,
+        user_context: UserContext,
         information_pieces_remover: InformationPieceRemover = Depends(
             Provide[DependencyContainer.information_pieces_remover]
         ),
@@ -119,6 +123,7 @@ class RagApi(BaseRagApi):
     async def upload_information_piece(
         self,
         information_piece: list[InformationPiece],
+        user_context: UserContext,
         information_pieces_uploader: InformationPiecesUploader = Depends(
             Provide[DependencyContainer.information_pieces_uploader]
         ),
@@ -139,3 +144,15 @@ class RagApi(BaseRagApi):
         None
         """
         information_pieces_uploader.upload_information_piece(information_piece)
+
+    @inject
+    async def update_document_access(
+        self,
+        document_id: str,
+        update: DocumentAccessUpdate,
+        user_context: UserContext,
+        document_access_manager: DocumentAccessManager = Depends(
+            Provide[DependencyContainer.document_access_manager]
+        ),
+    ) -> None:
+        document_access_manager.update_access(document_id, update.access_groups)

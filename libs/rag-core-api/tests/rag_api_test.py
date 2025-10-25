@@ -126,6 +126,7 @@ def _create_information_pieces() -> list[dict]:
                 KeyValuePair(key="type", value=json.dumps("TEXT")).model_dump(),
                 KeyValuePair(key="related", value=json.dumps([])).model_dump(),
                 KeyValuePair(key="id", value=json.dumps(uuid.uuid4().hex)).model_dump(),
+                KeyValuePair(key="access_groups", value=json.dumps(["public"])).model_dump(),
             ],
         ).model_dump(),
         InformationPiece(
@@ -136,6 +137,7 @@ def _create_information_pieces() -> list[dict]:
                 KeyValuePair(key="type", value=json.dumps("TEXT")).model_dump(),
                 KeyValuePair(key="related", value=json.dumps([])).model_dump(),
                 KeyValuePair(key="id", value=json.dumps(uuid.uuid4().hex)).model_dump(),
+                KeyValuePair(key="access_groups", value=json.dumps(["public"])).model_dump(),
             ],
         ).model_dump(),
         InformationPiece(
@@ -146,6 +148,7 @@ def _create_information_pieces() -> list[dict]:
                 KeyValuePair(key="type", value=json.dumps("TEXT")).model_dump(),
                 KeyValuePair(key="related", value=json.dumps([])).model_dump(),
                 KeyValuePair(key="id", value=json.dumps(uuid.uuid4().hex)).model_dump(),
+                KeyValuePair(key="access_groups", value=json.dumps(["public"])).model_dump(),
             ],
         ).model_dump(),
         InformationPiece(
@@ -158,6 +161,7 @@ def _create_information_pieces() -> list[dict]:
                 KeyValuePair(key="type", value=json.dumps("TEXT")).model_dump(),
                 KeyValuePair(key="related", value=json.dumps([])).model_dump(),
                 KeyValuePair(key="id", value=json.dumps(uuid.uuid4().hex)).model_dump(),
+                KeyValuePair(key="access_groups", value=json.dumps(["public"])).model_dump(),
             ],
         ).model_dump(),
         InformationPiece(

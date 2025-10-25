@@ -132,6 +132,10 @@ spec:
           - configMapRef:
               name: {{ template "configmap.chatHistoryName" . }}
           - configMapRef:
+              name: {{ template "configmap.accessControlName" . }}
+          - configMapRef:
+              name: {{ template "configmap.keycloakName" . }}
+          - configMapRef:
               name: {{ template "configmap.retryDecoratorName" . }}
           - secretRef:
               name: {{ template "secret.langfuseName" . }}
@@ -143,6 +147,8 @@ spec:
               name: {{ template "secret.stackitEmbedderName" . }}
           - secretRef:
               name: {{ template "secret.ragasName" . }}
+          - secretRef:
+              name: {{ template "secret.keycloakName" . }}
         env:
           - name: PYTHONPATH
             value: {{ .Values.backend.pythonPathEnv.PYTHONPATH }}

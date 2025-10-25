@@ -11,6 +11,7 @@ from fastapi import Request, Response, UploadFile
 
 from admin_api_lib.models.document_status import DocumentStatus
 from admin_api_lib.models.key_value_pair import KeyValuePair
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 
 
 class BaseAdminApi:
@@ -118,3 +119,10 @@ class BaseAdminApi:
         -------
         None
         """
+
+    async def update_document_access(
+        self,
+        identification: StrictStr,
+        update: DocumentAccessUpdate,
+    ) -> None:
+        """Update access control metadata for a document."""

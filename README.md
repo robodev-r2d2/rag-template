@@ -18,12 +18,16 @@ Welcome to the STACKIT RAG Template! This is a basic example of how to use the R
 
 **Frontends**: User-friendly interfaces for easy interaction.
 
-**Security**: Basic authentication for secure access.
+**Security**: Keycloak-backed authentication with document-level access control.
 
 **Deployment**: Options for both local and production
 environments.
 
 The template supports multiple LLM (Large Language Model) providers, such as STACKIT and Ollama, giving you flexibility in choosing the best fit for your project. It also integrates with Langfuse for enhanced monitoring and analytics, and uses S3 object storage for document management. 📁
+
+## Authentication & Authorization
+
+This chart provisions a Keycloak realm named `rag` that contains a confidential `rag-backend` client, predefined roles (`rag-admin`, `rag-user`), and sample groups (`public`, `finance`, `engineering`). The backend performs token introspection against Keycloak, maps roles and groups to document access groups, and filters Qdrant queries accordingly. New documents are tagged with the `public` group by default, and administrators can update the access list via the Admin API endpoint `POST /documents/{id}/access`.
 
 ## Table of Contents
 

@@ -19,8 +19,9 @@ from admin_api_lib.extractor_api_client.openapi_client.configuration import (
     Configuration as ExtractorConfiguration,
 )
 from admin_api_lib.impl.api_endpoints.default_source_uploader import DefaultSourceUploader
-from admin_api_lib.impl.api_endpoints.default_document_deleter import (
-    DefaultDocumentDeleter,
+from admin_api_lib.impl.api_endpoints.default_document_deleter import DefaultDocumentDeleter
+from admin_api_lib.impl.api_endpoints.default_document_access_updater import (
+    DefaultDocumentAccessUpdater,
 )
 from admin_api_lib.impl.api_endpoints.default_document_reference_retriever import (
     DefaultDocumentReferenceRetriever,
@@ -61,6 +62,7 @@ from admin_api_lib.rag_backend_client.openapi_client.configuration import (
 )
 from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
 from rag_core_lib.impl.llms.llm_factory import chat_model_provider
+from rag_core_lib.impl.settings.access_control_settings import AccessControlSettings
 from rag_core_lib.impl.settings.langfuse_settings import LangfuseSettings
 from rag_core_lib.impl.settings.ollama_llm_settings import OllamaSettings
 from rag_core_lib.impl.settings.rag_class_types_settings import RAGClassTypeSettings
@@ -88,6 +90,7 @@ class DependencyContainer(DeclarativeContainer):
     summarizer_settings = SummarizerSettings()
     source_uploader_settings = SourceUploaderSettings()
     retry_decorator_settings = RetryDecoratorSettings()
+    access_control_settings = AccessControlSettings()
 
     key_value_store = Singleton(FileStatusKeyValueStore, key_value_store_settings)
     file_service = Singleton(S3Service, s3_settings=s3_settings)
@@ -163,6 +166,11 @@ class DependencyContainer(DeclarativeContainer):
 
     document_reference_retriever = Singleton(DefaultDocumentReferenceRetriever, file_service=file_service)
 
+    document_access_updater = Singleton(
+        DefaultDocumentAccessUpdater,
+        rag_api_settings=rag_api_settings,
+    )
+
     source_uploader = Singleton(
         DefaultSourceUploader,
         extractor_api=document_extractor,
@@ -185,4 +193,5 @@ class DependencyContainer(DeclarativeContainer):
         key_value_store=key_value_store,
         document_deleter=document_deleter,
         file_service=file_service,
+        access_control_settings=access_control_settings,
     )
