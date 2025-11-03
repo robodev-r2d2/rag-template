@@ -133,8 +133,10 @@ spec:
               name: {{ template "configmap.chatHistoryName" . }}
           - configMapRef:
               name: {{ template "configmap.accessControlName" . }}
+          {{- with .Values.backend.envs.keycloak }}
           - configMapRef:
-              name: {{ template "configmap.keycloakName" . }}
+              name: {{ template "configmap.keycloakName" $ }}
+          {{- end }}
           - configMapRef:
               name: {{ template "configmap.retryDecoratorName" . }}
           - secretRef:
@@ -147,8 +149,10 @@ spec:
               name: {{ template "secret.stackitEmbedderName" . }}
           - secretRef:
               name: {{ template "secret.ragasName" . }}
+          {{- with .Values.backend.secrets.keycloak }}
           - secretRef:
-              name: {{ template "secret.keycloakName" . }}
+              name: {{ template "secret.keycloakName" $ }}
+          {{- end }}
         env:
           - name: PYTHONPATH
             value: {{ .Values.backend.pythonPathEnv.PYTHONPATH }}

@@ -143,14 +143,16 @@ data:
   {{ $key }}: {{ $value | quote }}
   {{- end }}
 ---
+{{- with .Values.backend.envs.keycloak }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "configmap.keycloakName" . }}
+  name: {{ template "configmap.keycloakName" $ }}
 data:
-  {{- range $key, $value := .Values.backend.envs.keycloak }}
+  {{- range $key, $value := . }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
