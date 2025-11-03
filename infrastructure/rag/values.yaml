@@ -605,20 +605,26 @@ langfuse:
       initdb:
         scripts:
           create-keycloak-db.sql: |
-            DO $$
+            DO $do$
             BEGIN
               IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bn_keycloak') THEN
                 CREATE ROLE bn_keycloak LOGIN PASSWORD 'bn_keycloak';
-              ELSE
-                ALTER ROLE bn_keycloak WITH LOGIN PASSWORD 'bn_keycloak';
               END IF;
-              IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bitnami_keycloak') THEN
-                CREATE DATABASE bitnami_keycloak OWNER bn_keycloak;
-              END IF;
-              EXECUTE 'ALTER DATABASE bitnami_keycloak OWNER TO bn_keycloak';
-            END;
-            $$;
-            GRANT ALL PRIVILEGES ON DATABASE bitnami_keycloak TO bn_keycloak;
+            END
+            $do$;
+            ALTER ROLE bn_keycloak WITH LOGIN PASSWORD 'bn_keycloak';
+
+            SELECT 'CREATE DATABASE bitnami_keycloak OWNER bn_keycloak'
+            WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
+
+            SELECT format('ALTER DATABASE %I OWNER TO %I', 'bitnami_keycloak', 'bn_keycloak')
+            WHERE EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
+
+            SELECT 'GRANT ALL PRIVILEGES ON DATABASE bitnami_keycloak TO bn_keycloak'
+            WHERE EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
 
   # Redis Configuration (external KeyDB)
   redis:
