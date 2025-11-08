@@ -18,6 +18,43 @@ features:
     enabled: true
   mcp:
     enabled: true
+keycloak:
+  auth:
+    adminUser: admin
+    adminPassword: admin
+  production: false
+  extraEnvVars:
+    - name: KEYCLOAK_IMPORT
+      value: /realm/realm.json
+  extraVolumes:
+    - name: realm-config
+      configMap:
+        name: rag-keycloak-realm
+  extraVolumeMounts:
+    - name: realm-config
+      mountPath: /realm
+      readOnly: true
+  enabled: true
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: rag-postgresql
+    port: 5432
+    user: bn_keycloak
+    password: bn_keycloak
+    database: bitnami_keycloak
+  image:
+    repository: bitnamilegacy/keycloak
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  keycloakConfigCli:
+    image:
+      repository: bitnamilegacy/keycloak-config-cli
 
 backend:
 
@@ -154,6 +191,8 @@ backend:
       apiKey: "sk-123"
     ragas:
       openaiApikey: ""
+    keycloak:
+      introspectionClientSecret: "rag-backend-secret"
 
   envs:
     stackitVllm:
@@ -205,6 +244,21 @@ backend:
       STACKIT_EMBEDDER_ATTEMPT_CAP: "6"
       STACKIT_EMBEDDER_JITTER_MIN: "0.05"
       STACKIT_EMBEDDER_JITTER_MAX: "0.25"
+    accessControl:
+      ACCESS_CONTROL_METADATA_KEY: access_groups
+      ACCESS_CONTROL_DEFAULT_GROUP: public
+      ACCESS_CONTROL_PUBLIC_GROUP: public
+      ACCESS_CONTROL_ROLE_PREFIX: "role:"
+    keycloak:
+      KEYCLOAK_ENABLED: "true"
+      KEYCLOAK_ENFORCE: "true"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak:8080"
+      KEYCLOAK_REALM: rag
+      KEYCLOAK_RESOURCE_CLIENT_ID: rag-backend
+      KEYCLOAK_INTROSPECTION_CLIENT_ID: rag-backend
+      KEYCLOAK_EXPECTED_AUDIENCE: rag-backend
+      KEYCLOAK_GROUPS_CLAIM: groups
+      KEYCLOAK_ADMIN_ROLE: rag-admin
     ollama:
       OLLAMA_MODEL: "llama3.2:3b-instruct-fp16"
       OLLAMA_BASE_URL: "http://rag-ollama:11434"
@@ -547,6 +601,30 @@ langfuse:
       username: postgres
       password: postgres
       database: langfuse
+    primary:
+      initdb:
+        scripts:
+          create-keycloak-db.sql: |
+            DO $do$
+            BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bn_keycloak') THEN
+                CREATE ROLE bn_keycloak LOGIN PASSWORD 'bn_keycloak';
+              END IF;
+            END
+            $do$;
+            ALTER ROLE bn_keycloak WITH LOGIN PASSWORD 'bn_keycloak';
+
+            SELECT 'CREATE DATABASE bitnami_keycloak OWNER bn_keycloak'
+            WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
+
+            SELECT format('ALTER DATABASE %I OWNER TO %I', 'bitnami_keycloak', 'bn_keycloak')
+            WHERE EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
+
+            SELECT 'GRANT ALL PRIVILEGES ON DATABASE bitnami_keycloak TO bn_keycloak'
+            WHERE EXISTS (SELECT 1 FROM pg_database WHERE datname = 'bitnami_keycloak');
+            \gexec
 
   # Redis Configuration (external KeyDB)
   redis:
@@ -575,7 +653,7 @@ langfuse:
         cpu: "2"
         memory: "8Gi"
       requests:
-        cpu: "2"
+        cpu: "1"
         memory: "4Gi"
 
     zookeeper:

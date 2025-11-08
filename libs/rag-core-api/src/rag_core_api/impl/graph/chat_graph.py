@@ -240,10 +240,13 @@ class DefaultChatGraph(GraphBase):
         )
         return {"answer_text": answer_text, "response": chat_response}
 
-    async def _retrieve_node(self, state: dict) -> dict:
+    async def _retrieve_node(self, state: dict, config: Optional[RunnableConfig] = None) -> dict:
         try:
             question = state.get("rephrased_question") or state["question"]
-            retrieved_documents = await self._composite_retriever.ainvoke(retriever_input=question)
+            retrieved_documents = await self._composite_retriever.ainvoke(
+                retriever_input=question,
+                config=config,
+            )
         except NoOrEmptyCollectionError:
             logger.warning("No or empty collection encountered.")
             return {

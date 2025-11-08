@@ -30,3 +30,7 @@ dependencies:
   version: 1.30.0
   repository: https://otwld.github.io/ollama-helm/
   condition: features.ollama.enabled
+- name: keycloak
+  repository: https://charts.bitnami.com/bitnami
+  version: "24.6.4"
+  condition: features.keycloak.enabled

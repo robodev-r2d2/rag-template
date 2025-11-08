@@ -73,12 +73,25 @@ class QdrantDatabase(VectorDatabase):
             return search_kwargs
 
         # Convert dict filter to Qdrant filter format
-        qdrant_filter = models.Filter(
-            must=[
-                models.FieldCondition(key="metadata." + key, match=models.MatchValue(value=value))
-                for key, value in filter_kwargs.items()
-            ]
-        )
+        conditions = []
+        for key, value in filter_kwargs.items():
+            match value:
+                case list() | tuple() | set():
+                    conditions.append(
+                        models.FieldCondition(
+                            key="metadata." + key,
+                            match=models.MatchAny(any=[str(item) for item in value]),
+                        )
+                    )
+                case _:
+                    conditions.append(
+                        models.FieldCondition(
+                            key="metadata." + key,
+                            match=models.MatchValue(value=value),
+                        )
+                    )
+
+        qdrant_filter = models.Filter(must=conditions)
 
         return {**search_kwargs, "filter": qdrant_filter}
 
@@ -175,6 +188,25 @@ class QdrantDatabase(VectorDatabase):
             location=self._settings.location,
             collection_name=self._settings.collection_name,
             retrieval_mode=self._settings.retrieval_mode,
+        )
+
+    def update_access_groups(self, document_id: str, access_groups: list[str], metadata_key: str) -> None:
+        """Set the access groups metadata for all chunks belonging to a document."""
+
+        payload = {"metadata": {metadata_key: list(dict.fromkeys(access_groups))}}
+        filter_selector = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="metadata.id",
+                    match=models.MatchValue(value=document_id),
+                )
+            ]
+        )
+
+        self._vectorstore.client.set_payload(
+            collection_name=self._settings.collection_name,
+            payload=payload,
+            filter=filter_selector,
         )
 
     def delete(self, delete_request: dict) -> None:

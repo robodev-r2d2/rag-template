@@ -19,6 +19,10 @@
 {{- printf "%s-stackit-ragas-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{- define "secret.keycloakName" -}}
+{{- printf "%s-keycloak-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 
 # configmaps
 {{- define "configmap.publicName" -}}
@@ -43,6 +47,14 @@
 
 {{- define "configmap.fakeEmbedderName" -}}
 {{- printf "%s-fake-embedder-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "configmap.accessControlName" -}}
+{{- printf "%s-access-control-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "configmap.keycloakName" -}}
+{{- printf "%s-keycloak-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "configmap.ragClassTypesName" -}}

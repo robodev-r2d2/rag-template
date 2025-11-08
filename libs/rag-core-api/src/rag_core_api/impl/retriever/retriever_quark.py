@@ -95,6 +95,14 @@ class RetrieverQuark(Retriever):
         """
         config = ensure_config(config)
         self.verify_readiness()
+        metadata = config.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        filter_kwargs = metadata.get("filter_kwargs")
+        if not isinstance(filter_kwargs, dict):
+            filter_kwargs = {}
+        metadata["filter_kwargs"] = filter_kwargs
+        config["metadata"] = metadata
         if self.TYPE_KEY not in config["metadata"]["filter_kwargs"].keys():
             config["metadata"]["filter_kwargs"] = config["metadata"]["filter_kwargs"] | self._filter_kwargs
         return await self._vector_database.asearch(

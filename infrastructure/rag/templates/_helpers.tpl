@@ -17,3 +17,4 @@
 {{- define "secret.usecaseName" -}}
 {{- printf "%s-usecase-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+

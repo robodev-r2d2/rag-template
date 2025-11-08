@@ -8,6 +8,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import Depends, Request, Response, UploadFile
 
 from admin_api_lib.api_endpoints.file_uploader import FileUploader
+from admin_api_lib.api_endpoints.document_access_updater import DocumentAccessUpdater
 from admin_api_lib.api_endpoints.source_uploader import SourceUploader
 from admin_api_lib.models.key_value_pair import KeyValuePair
 from admin_api_lib.api_endpoints.document_deleter import DocumentDeleter
@@ -20,6 +21,7 @@ from admin_api_lib.api_endpoints.documents_status_retriever import (
 from admin_api_lib.apis.admin_api_base import BaseAdminApi
 from admin_api_lib.dependency_container import DependencyContainer
 from admin_api_lib.models.document_status import DocumentStatus
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +149,7 @@ class AdminApi(BaseAdminApi):
         document_reference_retriever: DocumentReferenceRetriever = Depends(
             Provide[DependencyContainer.document_reference_retriever]
         ),
-    ) -> Response:
+        ) -> Response:
         """
         Retrieve the document with the given identification.
 
@@ -165,3 +167,14 @@ class AdminApi(BaseAdminApi):
             The document in binary form.
         """
         return await document_reference_retriever.adocument_reference_id_get(identification)
+
+    @inject
+    async def update_document_access(
+        self,
+        identification: str,
+        update: DocumentAccessUpdate,
+        document_access_updater: DocumentAccessUpdater = Depends(
+            Provide[DependencyContainer.document_access_updater]
+        ),
+    ) -> None:
+        await document_access_updater.update_access(identification, update)

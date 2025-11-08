@@ -154,13 +154,5 @@ class InformationPieceMapper:
     def _dict2key_value_pair(metadata: dict[str, any]) -> list[KeyValuePair]:
         mapped_values = []
         for key, value in metadata.items():
-            mapped_item: KeyValuePair | None = None
-
-            match value:
-                case dict():
-                    mapped_item = KeyValuePair(key=key, value=json.dumps(value))
-                case _:
-                    mapped_item = KeyValuePair(key=key, value=json.dumps(str(value)))
-
-            mapped_values.append(mapped_item)
+            mapped_values.append(KeyValuePair(key=key, value=json.dumps(value)))
         return mapped_values

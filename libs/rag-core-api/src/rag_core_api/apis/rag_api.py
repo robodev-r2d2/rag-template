@@ -10,22 +10,7 @@ from asyncio import FIRST_COMPLETED, CancelledError, create_task, sleep, wait
 from contextlib import suppress
 from typing import Any, Awaitable, List  # noqa: F401
 
-from fastapi import (  # noqa: F401
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Cookie,
-    Depends,
-    Form,
-    Header,
-    HTTPException,
-    Path,
-    Query,
-    Request,
-    Response,
-    Security,
-    status,
-)
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request, status
 
 import rag_core_api.impl
 from rag_core_api.apis.rag_api_base import BaseRagApi
@@ -33,6 +18,9 @@ from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
+from rag_core_api.security.dependencies import get_current_user, require_admin_user
+from rag_core_api.security.models import UserContext
+from rag_core_lib.impl.data_types.access_control import DocumentAccessUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +54,7 @@ async def chat(
     request: Request,
     session_id: str = Path(..., description=""),
     chat_request: ChatRequest = Body(None, description="Chat with RAG."),
+    user_context: UserContext = Depends(get_current_user),
 ) -> ChatResponse | None:
     """
     Asynchronously handles the chat endpoint for the RAG API.
@@ -95,7 +84,7 @@ async def chat(
     request. It waits for either task to complete first and cancels the remaining tasks.
     """
     disconnect_task = create_task(_disconnected(request))
-    chat_task = create_task(BaseRagApi.subclasses[0]().chat(session_id, chat_request))
+    chat_task = create_task(BaseRagApi.subclasses[0]().chat(session_id, chat_request, user_context))
     done, pending = await wait(
         [disconnect_task, chat_task],
         return_when=FIRST_COMPLETED,
@@ -121,7 +110,7 @@ async def chat(
     tags=["rag"],
     response_model_by_alias=True,
 )
-async def evaluate() -> None:
+async def evaluate(user_context: UserContext = Depends(require_admin_user)) -> None:
     """
     Asynchronously evaluate the RAG.
 
@@ -129,7 +118,7 @@ async def evaluate() -> None:
     -------
     None
     """
-    return await BaseRagApi.subclasses[0]().evaluate()
+    return await BaseRagApi.subclasses[0]().evaluate(user_context)
 
 
 @router.post(
@@ -146,6 +135,7 @@ async def evaluate() -> None:
 )
 async def remove_information_piece(
     delete_request: DeleteRequest = Body(None, description=""),
+    user_context: UserContext = Depends(require_admin_user),
 ) -> None:
     """
     Asynchronously removes information pieces.
@@ -161,7 +151,7 @@ async def remove_information_piece(
     -------
     None
     """
-    return await BaseRagApi.subclasses[0]().remove_information_piece(delete_request)
+    return await BaseRagApi.subclasses[0]().remove_information_piece(delete_request, user_context)
 
 
 @router.post(
@@ -177,6 +167,7 @@ async def remove_information_piece(
 )
 async def upload_information_piece(
     information_piece: List[InformationPiece] = Body(None, description=""),
+    user_context: UserContext = Depends(require_admin_user),
 ) -> None:
     """
     Asynchronously uploads information pieces for vectordatabase.
@@ -192,4 +183,25 @@ async def upload_information_piece(
     -------
     None
     """
-    return await BaseRagApi.subclasses[0]().upload_information_piece(information_piece)
+    return await BaseRagApi.subclasses[0]().upload_information_piece(information_piece, user_context)
+
+
+@router.post(
+    "/information_pieces/{document_id}/access",
+    responses={
+        202: {"description": "Accepted."},
+        403: {"description": "Forbidden."},
+        500: {"description": "Internal Server Error."},
+    },
+    tags=["rag"],
+    summary="Update document access control",
+    response_model_by_alias=True,
+)
+async def update_document_access(
+    document_id: str = Path(..., description="Identifier of the document to update."),
+    update: DocumentAccessUpdate = Body(..., description="New access configuration."),
+    user_context: UserContext = Depends(require_admin_user),
+) -> None:
+    """Update document level access control metadata."""
+
+    return await BaseRagApi.subclasses[0]().update_document_access(document_id, update, user_context)

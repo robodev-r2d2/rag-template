@@ -682,6 +682,22 @@ k8s_resource(
     labels=["infrastructure"],
 )
 
+########################################################################################################################
+###################################### port forwarding keycloak #######################################################
+########################################################################################################################
+
+k8s_resource(
+    "rag-keycloak",
+    port_forwards=[
+        port_forward(
+            9090,
+            container_port=8080,
+            name="Keycloak",
+        ),
+    ],
+    labels=["infrastructure"],
+)
+
 # Frontend test and lint resources (matching GitHub Actions)
 local_resource(
     'Frontend testing',
