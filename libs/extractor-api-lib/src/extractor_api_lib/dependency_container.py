@@ -32,13 +32,16 @@ from extractor_api_lib.impl.mapper.langchain_document2information_piece import (
 from extractor_api_lib.impl.mapper.sitemap_document2information_piece import (
     SitemapLangchainDocument2InformationPiece,
 )
+from extractor_api_lib.impl.settings.confluence_settings import ConfluenceSettings
 from extractor_api_lib.impl.settings.pdf_extractor_settings import PDFExtractorSettings
 from extractor_api_lib.impl.settings.s3_settings import S3Settings
+from extractor_api_lib.impl.settings.sitemap_settings import SitemapSettings
 from extractor_api_lib.impl.table_converter.dataframe2markdown import DataFrame2Markdown
 from extractor_api_lib.impl.utils.sitemap_extractor_utils import (
     custom_sitemap_metadata_parser_function,
     custom_sitemap_parser_function,
 )
+from extractor_api_lib.impl.extractors.file_extractors.markitdown_pdf_extractor import MarkitdownPDFExtractor
 
 
 class DependencyContainer(DeclarativeContainer):
@@ -56,6 +59,7 @@ class DependencyContainer(DeclarativeContainer):
     pdf_extractor = Singleton(PDFExtractor, file_service, settings_pdf_extractor, database_converter)
     ms_docs_extractor = Singleton(MSDocsExtractor, file_service, database_converter)
     xml_extractor = Singleton(XMLExtractor, file_service)
+    markitdown_pdf_extractor = Singleton(MarkitdownPDFExtractor, file_service, settings_pdf_extractor)
 
     intern2external = Singleton(Internal2ExternalInformationPiece)
     confluence_document2information_piece = Singleton(ConfluenceLangchainDocument2InformationPiece)
@@ -63,7 +67,8 @@ class DependencyContainer(DeclarativeContainer):
     sitemap_document2information_piece = Singleton(SitemapLangchainDocument2InformationPiece)
     epub_extractor = Singleton(EpubExtractor, file_service, langchain_document2information_piece)
 
-    file_extractors = List(pdf_extractor, ms_docs_extractor, xml_extractor, epub_extractor)
+    # Append Markitdown after default PDFExtractor so callers can choose order if needed
+    file_extractors = List(pdf_extractor, markitdown_pdf_extractor, ms_docs_extractor, xml_extractor, epub_extractor)
 
     general_file_extractor = Singleton(GeneralFileExtractor, file_service, file_extractors, intern2external)
     confluence_extractor = Singleton(ConfluenceExtractor, mapper=confluence_document2information_piece)

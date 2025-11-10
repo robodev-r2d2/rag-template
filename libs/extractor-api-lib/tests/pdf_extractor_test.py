@@ -2,6 +2,7 @@
 
 import time
 import logging
+import shutil
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -149,6 +150,7 @@ class TestPDFExtractor:
             assert element.metadata["document"] == "text_based_document"
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(shutil.which("tesseract") is None, reason="tesseract not installed")
     async def test_extract_content_scanned_pdf(self, pdf_extractor, test_pdf_files):
         """Test content extraction from scanned PDF using OCR."""
         result = await pdf_extractor.aextract_content(file_path=test_pdf_files["scanned"], name="scanned_document")
@@ -290,6 +292,7 @@ This subsection covers data collection procedures.
         assert result[0].metadata["page"] == 1
 
     @pytest.mark.integration
+    @pytest.mark.skipif(shutil.which("tesseract") is None, reason="tesseract not installed")
     def test_extract_text_from_scanned_page(self, pdf_extractor, test_pdf_files):
         """Test text extraction from scanned pages using OCR with real PDF."""
 
@@ -453,6 +456,7 @@ More content here."""
             await pdf_extractor.aextract_content(file_path=invalid_path, name="invalid_document")
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(shutil.which("tesseract") is None, reason="tesseract not installed")
     async def test_related_ids_mapping(self, pdf_extractor, test_pdf_files):
         """Test that related IDs are properly set between text and table elements using actual extractor."""
         # Use the actual PDF extractor with a real test file
@@ -538,6 +542,7 @@ More content here."""
 
     @pytest.mark.integration
     @pytest.mark.asyncio
+    @pytest.mark.skipif(shutil.which("tesseract") is None, reason="tesseract not installed")
     async def test_end_to_end_extraction(self, pdf_extractor, test_pdf_files):
         """Integration test for complete PDF extraction workflow."""
         for pdf_name, pdf_path in test_pdf_files.items():

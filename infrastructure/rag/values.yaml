@@ -457,8 +457,8 @@ shared:
 
   envs:
     pdfExtractor:
-      PDF_EXTRACTOR_DIAGRAMS_FOLDER_NAME: "connection_diagrams"
-      PDF_EXTRACTOR_FOOTER_HEIGHT: 155
+      PDF_EXTRACTOR_SPLIT_LEVEL_MAX: 3
+      PDF_EXTRACTOR_MIN_SECTION_CHARS: 800
     s3:
       S3_ENDPOINT: http://rag-minio:9000
       S3_BUCKET: documents
@@ -575,7 +575,7 @@ langfuse:
         cpu: "2"
         memory: "8Gi"
       requests:
-        cpu: "2"
+        cpu: "1"
         memory: "4Gi"
 
     zookeeper:

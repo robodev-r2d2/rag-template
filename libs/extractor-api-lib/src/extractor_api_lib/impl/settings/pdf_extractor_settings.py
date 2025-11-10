@@ -1,20 +1,27 @@
-"""Module for the settings of the S3 storage."""
+"""Module for PDF extractor settings."""
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class PDFExtractorSettings(BaseSettings):
-    """Contains settings regarding the S3 storage."""
+    """Settings for PDF extraction behavior.
+
+    Environment variables use the prefix `PDF_EXTRACTOR_`.
+    """
 
     class Config:
-        """Config class for reading Fields from env."""
+        """Config class for reading fields from env."""
 
         env_prefix = "pdf_extractor_"
         case_sensitive = False
 
-    footer_height: int = Field(default=155)
-    diagrams_folder_name: str = Field(
-        default="connection_diagrams",
-        description="Name of the folder where diagrams are stored.",
+    # Controls for MarkitdownPDFExtractor segmentation
+    split_level_max: int = Field(
+        default=3,
+        description="Maximum ATX heading level to split on (1=H1, 2=H2, 3=H3...).",
+    )
+    min_section_chars: int = Field(
+        default=800,
+        description="Minimum characters per section; adjacent sections are merged until this length is reached.",
     )

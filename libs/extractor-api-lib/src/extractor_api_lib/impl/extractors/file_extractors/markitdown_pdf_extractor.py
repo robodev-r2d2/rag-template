@@ -42,7 +42,7 @@ class MarkitdownPDFExtractor(InformationFileExtractor):
     MD_SETEXT_HEADING = re.compile(r"^(?P<title>[^\n][\s\S]*?)\n(?P<underline>=+|-+)\s*$", re.MULTILINE)
     # Horizontal rule (section delimiter)
     MD_HRULE = re.compile(r"^\s{0,3}(?:-{3,}|_{3,}|\*{3,})\s*$", re.MULTILINE)
-    # Bare page label like "Page 1" (common in PDF conversions). We'll convert to an ATX heading.
+    # Bare page label like "Page 1"codex (common in PDF conversions). We'll convert to an ATX heading.
     MD_BARE_PAGE_LABEL = re.compile(r"^(?:Page)\s+(\d{1,4})\b.*$", re.MULTILINE)
 
     # Heuristics to avoid tiny chunks
