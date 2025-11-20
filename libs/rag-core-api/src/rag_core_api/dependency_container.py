@@ -13,7 +13,6 @@ from langchain_community.embeddings.ollama import OllamaEmbeddings
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_qdrant import QdrantVectorStore, FastEmbedSparse
-from langfuse import Langfuse
 
 from rag_core_api.impl.answer_generation_chains.answer_generation_chain import (
     AnswerGenerationChain,
@@ -33,7 +32,7 @@ from rag_core_api.impl.embeddings.langchain_community_embedder import (
 
 
 from rag_core_api.impl.embeddings.stackit_embedder import StackitEmbedder
-from rag_core_api.impl.evaluator.langfuse_ragas_evaluator import LangfuseRagasEvaluator
+from rag_core_api.impl.evaluator.mlflow_ragas_evaluator import MlflowRagasEvaluator
 from rag_core_api.impl.graph.chat_graph import DefaultChatGraph
 from rag_core_api.impl.reranking.flashrank_reranker import FlashrankReranker
 from rag_core_api.impl.retriever.composite_retriever import CompositeRetriever
@@ -60,14 +59,14 @@ from rag_core_api.prompt_templates.question_rephrasing_prompt import (
 )
 from rag_core_api.prompt_templates.language_detection_prompt import LANGUAGE_DETECTION_PROMPT
 from rag_core_lib.impl.data_types.content_type import ContentType
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 from rag_core_lib.impl.llms.llm_factory import chat_model_provider
-from rag_core_lib.impl.settings.langfuse_settings import LangfuseSettings
+from rag_core_lib.impl.settings.mlflow_settings import MlflowSettings
 from rag_core_lib.impl.settings.ollama_llm_settings import OllamaSettings
 from rag_core_lib.impl.settings.rag_class_types_settings import RAGClassTypeSettings
 from rag_core_lib.impl.settings.retry_decorator_settings import RetryDecoratorSettings
 from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
-from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
+from rag_core_lib.impl.tracers.mlflow_traced_runnable import MlflowTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 
 
@@ -82,7 +81,7 @@ class DependencyContainer(DeclarativeContainer):
     retriever_settings = RetrieverSettings()
     ollama_settings = OllamaSettings()
     ollama_embedder_settings = OllamaEmbedderSettings()
-    langfuse_settings = LangfuseSettings()
+    mlflow_settings = MlflowSettings()
     stackit_vllm_settings = StackitVllmSettings()
     error_messages = ErrorMessages()
     rag_class_type_settings = RAGClassTypeSettings()
@@ -184,16 +183,9 @@ class DependencyContainer(DeclarativeContainer):
     rephrasing_prompt = QUESTION_REPHRASING_PROMPT
     language_detection_prompt = LANGUAGE_DETECTION_PROMPT
 
-    langfuse = Singleton(
-        Langfuse,
-        public_key=langfuse_settings.public_key,
-        secret_key=langfuse_settings.secret_key,
-        host=langfuse_settings.host,
-    )
-
-    langfuse_manager = Singleton(
-        LangfuseManager,
-        langfuse=langfuse,
+    mlflow_manager = Singleton(
+        MlflowManager,
+        settings=mlflow_settings,
         managed_prompts={
             AnswerGenerationChain.__name__: prompt,
             RephrasingChain.__name__: rephrasing_prompt,
@@ -204,17 +196,17 @@ class DependencyContainer(DeclarativeContainer):
 
     answer_generation_chain = Singleton(
         AnswerGenerationChain,
-        langfuse_manager=langfuse_manager,
+        mlflow_manager=mlflow_manager,
     )
 
     rephrasing_chain = Singleton(
         RephrasingChain,
-        langfuse_manager=langfuse_manager,
+        mlflow_manager=mlflow_manager,
     )
 
     language_detection_chain = Singleton(
         LanguageDetectionChain,
-        langfuse_manager=langfuse_manager,
+        mlflow_manager=mlflow_manager,
     )
 
     chat_graph = Singleton(
@@ -230,9 +222,9 @@ class DependencyContainer(DeclarativeContainer):
 
     # wrap graph in tracer
     traced_chat_graph = Singleton(
-        LangfuseTracedRunnable,
+        MlflowTracedRunnable,
         inner_chain=chat_graph,
-        settings=langfuse_settings,
+        settings=mlflow_settings,
     )
 
     chat_endpoint = Singleton(DefaultChat, traced_chat_graph)
@@ -263,12 +255,13 @@ class DependencyContainer(DeclarativeContainer):
     )
 
     evaluator = Singleton(
-        LangfuseRagasEvaluator,
+        MlflowRagasEvaluator,
         chat_endpoint=chat_endpoint,
         settings=ragas_settings,
-        langfuse_manager=langfuse_manager,
+        mlflow_manager=mlflow_manager,
         embedder=embedder,
         semaphore=Singleton(AsyncThreadsafeSemaphore, ragas_settings.max_concurrency),
         chat_history_config=chat_history_config,
         chat_llm=ragas_llm,
+        mlflow_settings=mlflow_settings,
     )

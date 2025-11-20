@@ -8,14 +8,18 @@ type: application
 version: 3.4.0
 appVersion: "3.4.0"
 dependencies:
-- name: langfuse
-  repository: https://langfuse.github.io/langfuse-k8s
-  version: "1.5.4"
-  condition: features.langfuse.enabled
 - name: qdrant
   version: 1.15.5
   repository: "https://qdrant.github.io/qdrant-helm"
   condition: features.qdrant.enabled
+- name: mlflow
+  version: 1.8.0
+  repository: "https://community-charts.github.io/helm-charts"
+  condition: features.mlflow.enabled
+- name: postgresql
+  version: 15.5.34
+  repository: "https://charts.bitnami.com/bitnami"
+  condition: features.mlflow.enabled
 - name: minio
   repository: https://charts.bitnami.com/bitnami
   version: "15.0.7"

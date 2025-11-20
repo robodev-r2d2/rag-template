@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from rag_core_api.impl.graph.graph_state.graph_state import AnswerGraphState
 from rag_core_lib.runnables.async_runnable import AsyncRunnable
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 
 RunnableInput = AnswerGraphState
 RunnableOutput = str
@@ -17,15 +17,15 @@ RunnableOutput = str
 class AnswerGenerationChain(AsyncRunnable[RunnableInput, RunnableOutput]):
     """Base class for LLM answer generation chain."""
 
-    def __init__(self, langfuse_manager: LangfuseManager):
+    def __init__(self, mlflow_manager: MlflowManager):
         """Initialize the AnswerGenerationChain.
 
         Parameters
         ----------
-        langfuse_manager : LangfuseManager
-            Manager instance for handling Langfuse operations and monitoring
+        mlflow_manager : MlflowManager
+            Manager instance for handling MLflow logging and prompt/LLM configuration.
         """
-        self._langfuse_manager = langfuse_manager
+        self._mlflow_manager = mlflow_manager
 
     @staticmethod
     def _format_docs(docs: list[Document]) -> str:
@@ -61,7 +61,7 @@ class AnswerGenerationChain(AsyncRunnable[RunnableInput, RunnableOutput]):
     def _create_chain(self) -> Runnable:
         return (
             RunnablePassthrough.assign(context=(lambda x: self._format_docs(x["langchain_documents"])))
-            | self._langfuse_manager.get_base_prompt(self.__class__.__name__)
-            | self._langfuse_manager.get_base_llm(self.__class__.__name__)
+            | self._mlflow_manager.get_base_prompt(self.__class__.__name__)
+            | self._mlflow_manager.get_base_llm(self.__class__.__name__)
             | StrOutputParser()
         )

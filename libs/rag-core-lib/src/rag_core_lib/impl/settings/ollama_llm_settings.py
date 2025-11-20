@@ -25,7 +25,7 @@ class OllamaSettings(BaseSettings):
 
     Notes
     -----
-    If the title of a field is provided, the field will be configurable in the Langfuse UI
+    If the title of a field is provided, the field will be configurable in observability UIs
     the field names should match the names of the attributes in the corresponding LLM class!
     """
 

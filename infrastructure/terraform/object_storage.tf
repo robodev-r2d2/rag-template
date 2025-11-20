@@ -3,11 +3,6 @@ resource "stackit_objectstorage_bucket" "documents" {
   project_id = var.project_id
 }
 
-resource "stackit_objectstorage_bucket" "langfuse" {
-  name       = "${var.name_prefix}-langfuse-${var.deployment_timestamp}"
-  project_id = var.project_id
-}
-
 resource "stackit_objectstorage_credentials_group" "rag_creds_group" {
   project_id = var.project_id
   name       = "${var.name_prefix}-credentials"

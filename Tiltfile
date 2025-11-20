@@ -73,10 +73,11 @@ local_resource(
     cmd="cd ./infrastructure/rag && helm dependency update",
     ignore=[
         "infrastructure/rag/charts/keydb-0.48.0.tgz",
-        "infrastructure/rag/charts/minio-14.6.7.tgz",
-        "infrastructure/rag/charts/langfuse-0.29.1.tgz",
-        "infrastructure/rag/charts/qdrant-0.9.1.tgz",
-        "infrastructure/rag/charts/ollama-0.29.1.tgz",
+        "infrastructure/rag/charts/minio-15.0.7.tgz",
+        "infrastructure/rag/charts/mlflow-1.8.0.tgz",
+        "infrastructure/rag/charts/postgresql-15.5.34.tgz",
+        "infrastructure/rag/charts/qdrant-1.15.5.tgz",
+        "infrastructure/rag/charts/ollama-1.30.0.tgz",
     ],
     labels=["helm"],
 )
@@ -472,9 +473,11 @@ value_override = [
     "shared.secrets.s3.accessKey=%s" % os.environ["S3_ACCESS_KEY_ID"],
     "shared.secrets.s3.secretKey=%s" % os.environ["S3_SECRET_ACCESS_KEY"],
     "backend.secrets.basicAuth=%s" % os.environ["BASIC_AUTH"],
-    "backend.secrets.langfuse.publicKey=%s" % os.environ["LANGFUSE_PUBLIC_KEY"],
-    "backend.secrets.langfuse.secretKey=%s" % os.environ["LANGFUSE_SECRET_KEY"],
+    "backend.secrets.mlflow.apiToken=%s" % os.environ.get("MLFLOW_API_TOKEN", ""),
     "backend.secrets.ragas.openaiApikey=%s" % os.environ["RAGAS_OPENAI_API_KEY"],
+    "backend.envs.mlflow.MLFLOW_TRACKING_URI=%s" % os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000"),
+    "backend.envs.mlflow.MLFLOW_EXPERIMENT_NAME=%s"
+    % os.environ.get("MLFLOW_EXPERIMENT_NAME", "rag-template"),
     "frontend.secrets.viteAuth.VITE_AUTH_USERNAME=%s" % os.environ["VITE_AUTH_USERNAME"],
     "frontend.secrets.viteAuth.VITE_AUTH_PASSWORD=%s" % os.environ["VITE_AUTH_PASSWORD"],
     # variables
@@ -487,21 +490,6 @@ value_override = [
     "features.mcp.enabled=true",
     # ingress host names
     "backend.ingress.host.name=rag.localhost",
-    # langfuse
-    "langfuse.langfuse.additionalEnv[0].name=LANGFUSE_INIT_ORG_ID",
-    "langfuse.langfuse.additionalEnv[0].value=\"%s\"" % os.environ["LANGFUSE_INIT_ORG_ID"],
-    "langfuse.langfuse.additionalEnv[1].name=LANGFUSE_INIT_PROJECT_ID",
-    "langfuse.langfuse.additionalEnv[1].value=\"%s\"" % os.environ["LANGFUSE_INIT_PROJECT_ID"],
-    "langfuse.langfuse.additionalEnv[2].name=LANGFUSE_INIT_PROJECT_PUBLIC_KEY",
-    "langfuse.langfuse.additionalEnv[2].value=%s" % os.environ["LANGFUSE_INIT_PROJECT_PUBLIC_KEY"],
-    "langfuse.langfuse.additionalEnv[3].name=LANGFUSE_INIT_PROJECT_SECRET_KEY",
-    "langfuse.langfuse.additionalEnv[3].value=%s" % os.environ["LANGFUSE_INIT_PROJECT_SECRET_KEY"],
-    "langfuse.langfuse.additionalEnv[4].name=LANGFUSE_INIT_USER_EMAIL",
-    "langfuse.langfuse.additionalEnv[4].value=%s" % os.environ["LANGFUSE_INIT_USER_EMAIL"],
-    "langfuse.langfuse.additionalEnv[5].name=LANGFUSE_INIT_USER_PASSWORD",
-    "langfuse.langfuse.additionalEnv[5].value=%s" % os.environ["LANGFUSE_INIT_USER_PASSWORD"],
-    "langfuse.langfuse.additionalEnv[6].name=LANGFUSE_INIT_USER_NAME",
-    "langfuse.langfuse.additionalEnv[6].value=%s" % os.environ["LANGFUSE_INIT_USER_NAME"],
 ]
 
 def has_confluence_config():
@@ -651,22 +639,6 @@ k8s_resource(
 )
 
 ########################################################################################################################
-###################################### port forwarding langfuse  #######################################################
-########################################################################################################################
-
-k8s_resource(
-    "rag-langfuse-web",
-    port_forwards=[
-        port_forward(
-            3000,
-            container_port=3000,
-            name="Langfuse Web",
-        ),
-    ],
-    labels=["infrastructure"],
-)
-
-########################################################################################################################
 ###################################### port forwarding minio  #######################################################
 ########################################################################################################################
 
@@ -677,6 +649,22 @@ k8s_resource(
             9001,
             container_port=9001,
             name="minio ui",
+        ),
+    ],
+    labels=["infrastructure"],
+)
+
+########################################################################################################################
+###################################### port forwarding mlflow ##########################################################
+########################################################################################################################
+
+k8s_resource(
+    "rag-mlflow",
+    port_forwards=[
+        port_forward(
+            5000,
+            container_port=5000,
+            name="MLflow UI",
         ),
     ],
     labels=["infrastructure"],

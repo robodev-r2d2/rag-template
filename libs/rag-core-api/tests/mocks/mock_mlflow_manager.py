@@ -1,4 +1,4 @@
-"""Mock implementation of LangfuseManager for testing."""
+"""Mock implementation of MlflowManager for testing."""
 
 from unittest.mock import Mock
 
@@ -6,21 +6,17 @@ from langchain_core.language_models.llms import LLM
 from langchain_core.prompts import ChatPromptTemplate
 
 
-class MockLangfuseManager:
-    """Mock implementation of LangfuseManager for testing."""
+class MockMlflowManager:
+    """Mock for the MlflowManager."""
 
-    def __init__(self, langfuse: Mock, managed_prompts: dict, llm: LLM):
-        self._langfuse = langfuse
+    def __init__(self, managed_prompts: dict, llm: LLM, tracking_client: Mock | None = None, **kwargs):
         self._managed_prompts = managed_prompts
         self._llm = llm
+        self._client = tracking_client
 
     def init_prompts(self):
         """Mock init_prompts method."""
-        pass
-
-    def get_langfuse_prompt(self, base_prompt_name: str):
-        """Mock get_langfuse_prompt method."""
-        return self._managed_prompts[base_prompt_name]
+        return None
 
     def get_base_llm(self, name: str) -> LLM:
         """Mock get_base_llm method."""
@@ -30,5 +26,4 @@ class MockLangfuseManager:
         """Mock get_base_prompt method."""
         if name in self._managed_prompts:
             return self._managed_prompts[name]
-        # Return a default ChatPromptTemplate if not found
         return ChatPromptTemplate.from_template("Default prompt template")

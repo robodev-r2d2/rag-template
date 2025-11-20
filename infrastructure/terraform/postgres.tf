@@ -19,10 +19,10 @@ resource "stackit_postgresflex_user" "rag_db_user" {
   roles       = ["login", "createdb"]
 }
 
-resource "stackit_postgresflex_database" "rag_langfuse_db" {
+resource "stackit_postgresflex_database" "rag_mlflow_db" {
   project_id  = var.project_id
   instance_id = stackit_postgresflex_instance.rag_db.instance_id
-  name        = "langfuse"
+  name        = "mlflow"
   owner       = stackit_postgresflex_user.rag_db_user.username
 }
 
@@ -44,5 +44,5 @@ output "postgres_password" {
 }
 
 output "postgres_database" {
-  value = stackit_postgresflex_database.rag_langfuse_db.name
+  value = stackit_postgresflex_database.rag_mlflow_db.name
 }

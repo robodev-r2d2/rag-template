@@ -1,4 +1,4 @@
-"""Module that contains settings regarding langfuse."""
+"""Module that contains settings regarding Ragas evaluation and tracking."""
 
 from pydantic import Field
 from pydantic_settings import BaseSettings

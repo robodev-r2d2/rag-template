@@ -3,8 +3,8 @@
 {{- printf "%s-s3-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "secret.langfuseName" -}}
-{{- printf "%s-langfuse-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- define "secret.mlflowName" -}}
+{{- printf "%s-mlflow-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "secret.usecaseName" -}}
@@ -48,8 +48,8 @@
 {{- printf "%s-logging-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "configmap.langfuseName" -}}
-{{- printf "%s-langfuse-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- define "configmap.mlflowName" -}}
+{{- printf "%s-mlflow-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "configmap.adminBackendName" -}}

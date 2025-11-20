@@ -64,7 +64,7 @@ Welcome to the STACKIT RAG Template! This is a basic example of how to use the R
 **Deployment**: Options for both local and production
 environments.
 
-The template supports multiple LLM (Large Language Model) providers, such as STACKIT and Ollama, giving you flexibility in choosing the best fit for your project. It also integrates with Langfuse for enhanced monitoring and analytics, and uses S3 object storage for document management. 📁
+The template supports multiple LLM (Large Language Model) providers, such as STACKIT and Ollama, giving you flexibility in choosing the best fit for your project. It also integrates with MLflow for observability/metrics, and uses S3 object storage for document management. 📁
 
 ## Table of Contents
 
@@ -75,7 +75,7 @@ The template supports multiple LLM (Large Language Model) providers, such as STA
     - [1.4 Local setup instructions](#14-local-setup-instructions)
 - [2. Deployment to server](#2-deployment-to-server)
     - [2.1 Server provisioning](#21-server-provisioning)
-    - [2.2 Langfuse](#22-langfuse)
+- [2.2 MLflow](#22-mlflow)
 - [3. Build and Test](#3-build-and-test)
 - [4. Contribution Guidelines](#4-contribution-guidelines)
 
@@ -223,7 +223,7 @@ STACKIT_EMBEDDER_API_KEY=...
 
 # ONLY necessary, if no init values are set. if init values are set,
 # the following two values should match the init values or be commented out
-# or be created via the langfuse UI.
+# or be created via the MLflow UI.
 LANGFUSE_PUBLIC_KEY=pk-lf-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 LANGFUSE_SECRET_KEY=sk-lf-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
@@ -265,7 +265,7 @@ This can be done with the following command from the root of the git-repository:
 cd infrastructure/rag;helm dependency update; cd ../..
 ```
 
-> 📝 NOTE: The configuration of the `Tiltfile` requires `features.frontend.enabled=true`, `features.keydb.enabled=true`, `features.langfuse.enabled=true` and `features.qdrant.enabled=true`.
+> 📝 NOTE: The configuration of the `Tiltfile` requires `features.frontend.enabled=true`, `features.keydb.enabled=true`, `features.mcp.enabled=true`, `features.qdrant.enabled=true`, and an MLflow tracking URI configured.
 
 After the initial build of the helm chart *Tilt* is able to update the files.
 
@@ -471,9 +471,9 @@ For further information please consult the [STACKIT Terrraform Provider document
 
 Further requirements for the server can be found in the [infrastructure README](./infrastructure/README.md).
 
-### 2.2 Langfuse
+### 2.2 MLflow
 
-A detailed description regarding the configuration of Langfuse can be found in the [infrastructure README](./infrastructure/README.md).
+A detailed description regarding the configuration of MLflow can be found in the infrastructure README.
 
 
 ## 3. Build and Test
@@ -483,4 +483,3 @@ The linting-settings can be changed in the `services/rag-backend/pyproject.toml`
 ## 4. Contribution Guidelines
 
 In order to contribute please consult the [CONTRIBUTING.md](./CONTRIBUTING.md).
-

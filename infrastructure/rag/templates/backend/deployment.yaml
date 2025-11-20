@@ -112,7 +112,7 @@ spec:
           - configMapRef:
               name: {{ template "configmap.rerankerName" . }}
           - configMapRef:
-              name: {{ template "configmap.langfuseName" . }}
+              name: {{ template "configmap.mlflowName" . }}
           - configMapRef:
               name: {{ template "configmap.publicName" . }}
           - configMapRef:
@@ -134,7 +134,7 @@ spec:
           - configMapRef:
               name: {{ template "configmap.retryDecoratorName" . }}
           - secretRef:
-              name: {{ template "secret.langfuseName" . }}
+              name: {{ template "secret.mlflowName" . }}
           - secretRef:
               name: {{ template "secret.stackitVllmName" . }}
           - secretRef:

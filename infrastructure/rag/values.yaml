@@ -8,7 +8,7 @@ features:
     enabled: false
   minio:
     enabled: false
-  langfuse:
+  mlflow:
     enabled: true
   qdrant:
     enabled: true
@@ -145,9 +145,8 @@ backend:
 
   secrets:
     basicAuth: ""
-    langfuse:
-      publicKey: "pk-lf"
-      secretKey: "sk-lf"
+    mlflow:
+      apiToken: ""
     stackitEmbedder:
       apiKey: ""
     stackitVllm:
@@ -179,10 +178,9 @@ backend:
       ERROR_MESSAGES_HARMFUL_QUESTION: "I'm sorry, but harmful requests cannot be processed."
       ERROR_MESSAGES_NO_ANSWER_FOUND: "I'm sorry, I couldn't find an answer with the context provided."
       ERROR_MESSAGE_EMPTY_MESSAGE: "I'm sorry, but I can't answer an empty question."
-    langfuse:
-      LANGFUSE_DATASET_NAME: "rag_test_ds"
-      LANGFUSE_DATASET_FILENAME: "/app/test_data.json"
-      LANGFUSE_HOST: "http://rag-langfuse-web:3000" #NOTE: http protocol needs to be defined!
+    mlflow:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MLFLOW_EXPERIMENT_NAME: "rag-template"
     ragClassTypes:
       RAG_CLASS_TYPE_LLM_TYPE: "stackit"
     ragas:
@@ -475,148 +473,6 @@ shared:
       RETRY_DECORATOR_RETRY_BASE_DELAY: "0.5"
       RETRY_DECORATOR_RETRY_MAX_DELAY: "600"
       RETRY_DECORATOR_BACKOFF_FACTOR: "2"
-      RETRY_DECORATOR_ATTEMPT_CAP: "6"
-      RETRY_DECORATOR_JITTER_MIN: "0.05"
-      RETRY_DECORATOR_JITTER_MAX: "0.25"
-    usecase:
-
-
-langfuse:
-  # Core Langfuse Configuration
-  langfuse:
-    # Used to hash API keys
-    salt:
-      value: "changeme"
-
-    # Authentication settings
-    features:
-      telemetryEnabled: true
-      signUpDisabled: false
-
-    # Web deployment configuration
-    web:
-      image:
-        repository: langfuse/langfuse
-        tag: "3.115.0"
-        pullPolicy: Always
-
-    # Worker deployment configuration
-    worker:
-      image:
-        repository: langfuse/langfuse-worker
-        tag: "3.115.0"
-        pullPolicy: Always
-      port: 3030
-
-    # NextAuth configuration
-    nextauth:
-      url: http://localhost:3000
-      secret:
-        value: "changeme"
-
-    # Additional environment variables (only for init values)
-    additionalEnv:
-    - name: LANGFUSE_INIT_ORG_ID
-      value: ""
-    - name: LANGFUSE_INIT_PROJECT_ID
-      value: ""
-    - name: LANGFUSE_INIT_PROJECT_PUBLIC_KEY
-      value: ""
-    - name: LANGFUSE_INIT_PROJECT_SECRET_KEY
-      value: ""
-    - name: LANGFUSE_INIT_USER_EMAIL
-      value: ""
-    - name: LANGFUSE_INIT_USER_NAME
-      value: ""
-    - name: LANGFUSE_INIT_USER_PASSWORD
-      value: ""
-
-    # Additional init containers
-    extraInitContainers:
-    - name: wait-for-postgres
-      image: busybox
-      command:
-      - sh
-      - -c
-      - |
-        until nc -z rag-postgresql 5432; do
-          echo "Waiting for PostgreSQL to be ready..."
-          sleep 2
-        done
-      # Define a reasonable timeout in case PostgreSQL fails to come up
-      timeoutSeconds: 300
-
-  # PostgreSQL Configuration (use external PostgreSQL)
-  postgresql:
-    deploy: true
-    host: "rag-postgresql"
-    port: 5432
-    auth:
-      username: postgres
-      password: postgres
-      database: langfuse
-
-  # Redis Configuration (external KeyDB)
-  redis:
-    deploy: false
-    host: "rag-keydb"
-    port: 6379
-    auth:
-      username: "default"
-      password: ""
-
-  # ClickHouse Configuration (external ClickHouse)
-  clickhouse:
-    deploy: true
-    host: "rag-clickhouse"
-    httpPort: 8123
-    nativePort: 9000
-    auth:
-      username: "default"
-      password: "changeme"
-    migration:
-      url: "clickhouse://rag-clickhouse:9000"
-      ssl: false
-      autoMigrate: true
-    resources:
-      limits:
-        cpu: "2"
-        memory: "8Gi"
-      requests:
-        cpu: "2"
-        memory: "4Gi"
-
-    zookeeper:
-      resources:
-        limits:
-          cpu: "2"
-          memory: "2Gi"
-        requests:
-          cpu: "1"
-          memory: "1Gi"
-
-  # S3/MinIO Configuration (external MinIO)
-  s3:
-    deploy: false
-    bucket: "langfuse"
-    region: "auto"
-    endpoint: "http://rag-minio:9000"
-    forcePathStyle: true
-    accessKeyId:
-      value: "admin"
-    secretAccessKey:
-      value: "adminpassword"
-    eventUpload:
-      enabled: true
-      bucket: "langfuse"
-      region: "auto"
-      endpoint: "http://rag-minio:9000"
-      forcePathStyle: true
-      accessKeyId:
-        value: "admin"
-      secretAccessKey:
-        value: "adminpassword"
-
 minio:
   image:
     repository: bitnamilegacy/minio
@@ -631,7 +487,7 @@ minio:
   ## e.g:
   ## defaultBuckets: "my-bucket, my-second-bucket"
   ##
-  defaultBuckets: "documents,langfuse"
+  defaultBuckets: "documents,tracing"
   networkPolicy:
     enabled: false
   mode: standalone
@@ -656,3 +512,37 @@ keydb:
   multiMaster: "no"
   activeReplicas: "no"
   nodes: 1
+mlflow:
+  backendStore:
+    databaseMigration: true
+    databaseConnectionCheck: true
+    postgres:
+      enabled: true
+      host: "rag-postgresql"
+      port: 5432
+      database: "mlflow"
+      user: "mlflow"
+      password: "mlflowpassword" # override with real secret or use existingSecret in helm overrides
+  artifactRoot:
+    proxiedArtifactStorage: false
+    defaultArtifactRoot: "s3://tracing/mlflow"
+    defaultArtifactsDestination: "s3://tracing/mlflow"
+    s3:
+      enabled: true
+      bucket: "tracing"
+      path: "mlflow"
+      awsAccessKeyId: "admin"
+      awsSecretAccessKey: "adminpassword"
+postgresql:
+  enabled: true
+  image:
+    repository: bitnamilegacy/postgresql
+  auth:
+    username: mlflow
+    password: mlflowpassword
+    database: mlflow
+  architecture: standalone
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi

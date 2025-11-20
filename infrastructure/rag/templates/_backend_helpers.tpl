@@ -3,8 +3,8 @@
 {{- printf "%s-database-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "secret.langfuseName" -}}
-{{- printf "%s-langfuse-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- define "secret.mlflowName" -}}
+{{- printf "%s-mlflow-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "secret.stackitEmbedderName" -}}
@@ -57,8 +57,8 @@
 {{- printf "%s-retriever-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "configmap.langfuseName" -}}
-{{- printf "%s-langfuse-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- define "configmap.mlflowName" -}}
+{{- printf "%s-mlflow-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "configmap.ragasName" -}}
@@ -87,6 +87,10 @@
 
 {{- define "configmap.mcp" -}}
 {{- printf "%s-mcp-configmap" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "secret.s3Name" -}}
+{{- printf "%s-s3-secret" .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 # ingress

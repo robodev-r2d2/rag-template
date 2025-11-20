@@ -5,7 +5,6 @@ from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import Configuration, List, Selector, Singleton
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
-from langfuse import Langfuse
 
 from admin_api_lib.extractor_api_client.openapi_client.api.extractor_api import (
     ExtractorApi,
@@ -61,19 +60,19 @@ from rag_core_lib.impl.embeddings.langchain_community_embedder import (
     LangchainCommunityEmbedder,
 )
 from rag_core_lib.impl.embeddings.stackit_embedder import StackitEmbedder
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 from rag_core_lib.impl.llms.llm_factory import chat_model_provider
 from rag_core_lib.impl.settings.embedder_class_type_settings import (
     EmbedderClassTypeSettings,
 )
-from rag_core_lib.impl.settings.langfuse_settings import LangfuseSettings
+from rag_core_lib.impl.settings.mlflow_settings import MlflowSettings
 from rag_core_lib.impl.settings.ollama_embedder_settings import OllamaEmbedderSettings
 from rag_core_lib.impl.settings.ollama_llm_settings import OllamaSettings
 from rag_core_lib.impl.settings.rag_class_types_settings import RAGClassTypeSettings
 from rag_core_lib.impl.settings.retry_decorator_settings import RetryDecoratorSettings
 from rag_core_lib.impl.settings.stackit_embedder_settings import StackitEmbedderSettings
 from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
-from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
+from rag_core_lib.impl.tracers.mlflow_traced_runnable import MlflowTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 
 
@@ -90,7 +89,7 @@ class DependencyContainer(DeclarativeContainer):
     stackit_chunker_embedder_settings = StackitEmbedderSettings()
     ollama_chunker_embedder_settings = OllamaEmbedderSettings()
     ollama_settings = OllamaSettings()
-    langfuse_settings = LangfuseSettings()
+    mlflow_settings = MlflowSettings()
     stackit_vllm_settings = StackitVllmSettings()
     document_extractor_settings = DocumentExtractorSettings()
     rag_class_type_settings = RAGClassTypeSettings()
@@ -165,17 +164,11 @@ class DependencyContainer(DeclarativeContainer):
         chunk_size=summarizer_settings.maximum_input_size, chunk_overlap=chunker_settings.overlap
     )
 
-    langfuse = Singleton(
-        Langfuse,
-        public_key=langfuse_settings.public_key,
-        secret_key=langfuse_settings.secret_key,
-        host=langfuse_settings.host,
-    )
     summarizer_prompt = SUMMARIZE_PROMPT
 
-    langfuse_manager = Singleton(
-        LangfuseManager,
-        langfuse=langfuse,
+    mlflow_manager = Singleton(
+        MlflowManager,
+        settings=mlflow_settings,
         managed_prompts={
             LangchainSummarizer.__name__: summarizer_prompt,
         },
@@ -184,7 +177,7 @@ class DependencyContainer(DeclarativeContainer):
 
     summarizer = Singleton(
         LangchainSummarizer,
-        langfuse_manager=langfuse_manager,
+        mlflow_manager=mlflow_manager,
         chunker=summary_text_splitter,
         semaphore=Singleton(AsyncThreadsafeSemaphore, summarizer_settings.maximum_concurrency),
         summarizer_settings=summarizer_settings,
@@ -199,9 +192,9 @@ class DependencyContainer(DeclarativeContainer):
         summary_enhancer,
     )
     information_enhancer = Singleton(
-        LangfuseTracedRunnable,
+        MlflowTracedRunnable,
         inner_chain=untraced_information_enhancer,
-        settings=langfuse_settings,
+        settings=mlflow_settings,
     )
 
     document_deleter = Singleton(

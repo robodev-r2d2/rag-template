@@ -1,5 +1,5 @@
 """Mock classes for testing."""
 
-from .mock_langfuse_manager import MockLangfuseManager
+from .mock_mlflow_manager import MockMlflowManager
 
-__all__ = ["MockLangfuseManager"]
+__all__ = ["MockMlflowManager"]

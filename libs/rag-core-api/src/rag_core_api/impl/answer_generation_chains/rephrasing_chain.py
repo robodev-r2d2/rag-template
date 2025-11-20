@@ -7,7 +7,7 @@ from langchain_core.runnables import Runnable, RunnableConfig
 
 from rag_core_api.impl.graph.graph_state.graph_state import AnswerGraphState
 from rag_core_lib.runnables.async_runnable import AsyncRunnable
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 
 RunnableInput = AnswerGraphState
 RunnableOutput = str
@@ -16,19 +16,19 @@ RunnableOutput = str
 class RephrasingChain(AsyncRunnable[RunnableInput, RunnableOutput]):
     """Base class for rephrasing of the input question."""
 
-    def __init__(self, langfuse_manager: LangfuseManager):
-        """Initialize RephrasingChain with LangfuseManager.
+    def __init__(self, mlflow_manager: MlflowManager):
+        """Initialize RephrasingChain with MlflowManager.
 
         Parameters
         ----------
-        langfuse_manager : LangfuseManager
-            Manager for handling Langfuse operations and tracking.
+        mlflow_manager : MlflowManager
+            Manager for handling MLflow logging and tracking.
 
         Returns
         -------
         None
         """
-        self._langfuse_manager = langfuse_manager
+        self._mlflow_manager = mlflow_manager
 
     async def ainvoke(
         self, chain_input: RunnableInput, config: Optional[RunnableConfig] = None, **kwargs: Any
@@ -58,7 +58,7 @@ class RephrasingChain(AsyncRunnable[RunnableInput, RunnableOutput]):
 
     def _create_chain(self) -> Runnable:
         return (
-            self._langfuse_manager.get_base_prompt(self.__class__.__name__)
-            | self._langfuse_manager.get_base_llm(self.__class__.__name__)
+            self._mlflow_manager.get_base_prompt(self.__class__.__name__)
+            | self._mlflow_manager.get_base_llm(self.__class__.__name__)
             | StrOutputParser()
         )

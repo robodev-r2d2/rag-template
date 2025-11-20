@@ -18,7 +18,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from rag_core_api.impl.graph.graph_state.graph_state import AnswerGraphState
 from rag_core_lib.runnables.async_runnable import AsyncRunnable
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 from rag_core_api.utils.utils import (
     strip_code_fences,
     norm_lang,
@@ -36,9 +36,9 @@ RunnableOutput = str
 class LanguageDetectionChain(AsyncRunnable[RunnableInput, RunnableOutput]):
     """Base class for language detection of the input question."""
 
-    def __init__(self, langfuse_manager: LangfuseManager):
-        """Initialize LanguageDetectionChain with LangfuseManager."""
-        self._langfuse_manager = langfuse_manager
+    def __init__(self, mlflow_manager: MlflowManager):
+        """Initialize LanguageDetectionChain with MlflowManager."""
+        self._mlflow_manager = mlflow_manager
 
     @staticmethod
     def _strict_json_parse(text: str) -> Optional[str]:
@@ -130,8 +130,8 @@ class LanguageDetectionChain(AsyncRunnable[RunnableInput, RunnableOutput]):
                 'lowercase two-letter ISO 639-1 code, e.g. {"language":"de"}.'
             )
 
-        prompt = self._langfuse_manager.get_base_prompt(self.__class__.__name__).partial(
+        prompt = self._mlflow_manager.get_base_prompt(self.__class__.__name__).partial(
             format_instructions=fmt_instructions
         )
 
-        return prompt | self._langfuse_manager.get_base_llm(self.__class__.__name__) | StrOutputParser()
+        return prompt | self._mlflow_manager.get_base_llm(self.__class__.__name__) | StrOutputParser()

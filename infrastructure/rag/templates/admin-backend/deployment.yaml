@@ -100,7 +100,7 @@ spec:
           - configMapRef:
               name: {{ template "configmap.summarizerName" . }}
           - configMapRef:
-              name: {{ template "configmap.langfuseName" . }}
+              name: {{ template "configmap.mlflowName" . }}
           - configMapRef:
               name: {{ template "configmap.ollamaName" . }}
           - configMapRef:
@@ -122,7 +122,7 @@ spec:
           - configMapRef:
               name: {{ template "configmap.chunkerName" . }}
           - secretRef:
-              name: {{ template "secret.langfuseName" . }}
+              name: {{ template "secret.mlflowName" . }}
           - secretRef:
               name: {{ template "secret.usecaseName" . }}
           - secretRef:

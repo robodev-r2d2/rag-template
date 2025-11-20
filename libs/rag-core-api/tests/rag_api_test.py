@@ -22,7 +22,7 @@ from unittest.mock import MagicMock
 
 from mocks.mock_environment_variables import mock_environment_variables
 from mocks.mock_logging_directory import mock_logging_config
-from mocks import MockLangfuseManager
+from mocks import MockMlflowManager
 
 mock_environment_variables()
 mock_logging_config()
@@ -69,12 +69,10 @@ async def adjusted_app() -> AsyncGenerator[FastAPI, None]:
             )
         )
 
-        # Override Langfuse with mock implementation
-        mock_langfuse = providers.Singleton(MagicMock)
-        app.container.langfuse.override(mock_langfuse)
-        mock_langfuse_manager = providers.Singleton(
-            MockLangfuseManager,
-            langfuse=mock_langfuse,
+        # Override Mlflow manager with mock implementation
+        mock_mlflow_manager = providers.Singleton(
+            MockMlflowManager,
+            tracking_client=providers.Singleton(MagicMock),
             managed_prompts={
                 AnswerGenerationChain.__name__: ANSWER_GENERATION_PROMPT,
                 RephrasingChain.__name__: QUESTION_REPHRASING_PROMPT,
@@ -82,7 +80,7 @@ async def adjusted_app() -> AsyncGenerator[FastAPI, None]:
             },
             llm=app.container.large_language_model,
         )
-        app.container.langfuse_manager.override(mock_langfuse_manager)
+        app.container.mlflow_manager.override(mock_mlflow_manager)
         app.container.traced_chat_graph.override(app.container.chat_graph)
 
         client = app.container.vectordb_client()

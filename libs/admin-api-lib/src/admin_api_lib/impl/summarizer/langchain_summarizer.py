@@ -15,7 +15,7 @@ from admin_api_lib.summarizer.summarizer import (
     SummarizerInput,
     SummarizerOutput,
 )
-from rag_core_lib.impl.langfuse_manager.langfuse_manager import LangfuseManager
+from rag_core_lib.impl.mlflow_manager.mlflow_manager import MlflowManager
 from rag_core_lib.impl.settings.retry_decorator_settings import RetryDecoratorSettings
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 from rag_core_lib.impl.utils.retry_decorator import create_retry_decorator_settings, retry_with_backoff
@@ -26,21 +26,21 @@ logger = logging.getLogger(__name__)
 class LangchainSummarizer(Summarizer):
     """Is responsible for summarizing input data.
 
-    LangchainSummarizer is responsible for summarizing input data using the LangfuseManager,
+    LangchainSummarizer is responsible for summarizing input data using the MlflowManager,
     RecursiveCharacterTextSplitter, and AsyncThreadsafeSemaphore. It handles chunking of the input
     document and retries the summarization process if an error occurs.
     """
 
     def __init__(
         self,
-        langfuse_manager: LangfuseManager,
+        mlflow_manager: MlflowManager,
         chunker: RecursiveCharacterTextSplitter,
         semaphore: AsyncThreadsafeSemaphore,
         summarizer_settings: SummarizerSettings,
         retry_decorator_settings: RetryDecoratorSettings,
     ):
         self._chunker = chunker
-        self._langfuse_manager = langfuse_manager
+        self._mlflow_manager = mlflow_manager
         self._semaphore = semaphore
         self._retry_decorator_settings = create_retry_decorator_settings(summarizer_settings, retry_decorator_settings)
 
@@ -94,7 +94,7 @@ class LangchainSummarizer(Summarizer):
         return await self._summarize_chunk(merged, config)
 
     def _create_chain(self) -> Runnable:
-        return self._langfuse_manager.get_base_prompt(self.__class__.__name__) | self._langfuse_manager.get_base_llm(
+        return self._mlflow_manager.get_base_prompt(self.__class__.__name__) | self._mlflow_manager.get_base_llm(
             self.__class__.__name__
         )
 

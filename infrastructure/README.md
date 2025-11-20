@@ -6,7 +6,7 @@ It includes Helm charts, Kubernetes manifests, Terraform scripts, and cluster se
 The documentation is structured as follows:
 
 - [1. Components and Configuration Values to Adjust](#1-components-and-configuration-values-to-adjust)
-  - [1.1 Langfuse](#11-langfuse)
+  - [1.1 MLflow](#11-mlflow)
   - [1.2 Qdrant](#12-qdrant)
   - [1.3 KeyDB](#13-keydb)
   - [1.4 Frontend](#14-frontend)
@@ -23,7 +23,7 @@ The documentation is structured as follows:
 We temporarily switched some dependencies from Bitnami to Bitnami Legacy images and enabled pulling insecure images. This is a short-term workaround.
 
 - What changed
-  - Image repositories for certain dependencies under `langfuse` and `minio` now use `bitnamilegacy/*` (e.g., `bitnamilegacy/minio`, `bitnamilegacy/postgresql`, `bitnamilegacy/clickhouse`, `bitnamilegacy/zookeeper`, `bitnamilegacy/valkey`).
+  - Image repositories for certain dependencies under `minio` now use `bitnamilegacy/*` (e.g., `bitnamilegacy/minio`, `bitnamilegacy/postgresql`, `bitnamilegacy/clickhouse`, `bitnamilegacy/zookeeper`, `bitnamilegacy/valkey`).
   - In `rag/values.yaml`, `global.security.allowInsecureImages` is set to `true`.
 
 - Why: Bitnami announced catalog changes where non-hardened, Debian-based images in the free tier are reducing versioned tags in the public catalog and prioritizing latest-only tags, with older/versioned tags migrated to the “Bitnami Legacy” repository (`docker.io/bitnamilegacy`). To maintain reproducibility with pinned versions, we temporarily use the legacy repositories. See:
@@ -56,7 +56,7 @@ minio:
   image:
     repository: bitnami/minio
 
-langfuse:
+mlflow:
   postgresql:
     image:
       repository: bitnami/postgresql
@@ -77,7 +77,7 @@ Note: The exact locations may differ if you customized `values.yaml`. Search for
 
 This directory contains the Helm chart for the following RAG components:
 
-- [Langfuse](https://langfuse.com/) (dependency)
+- [MLflow](https://mlflow.org/) (dependency)
 - [Qdrant](https://qdrant.tech/) (dependency)
 - [KeyDB](https://docs.keydb.dev/) (dependency)
 - Frontend
@@ -95,7 +95,7 @@ features:
     enabled: false
   minio:
     enabled: false
-  langfuse:
+  mlflow:
     enabled: true
   qdrant:
     enabled: true
@@ -131,53 +131,18 @@ shared:
 
 For local development, the `imagePullSecret` is not necessary.
 
-### 1.1 Langfuse
+### 1.1 MLflow
 
-You can deploy Langfuse with initial values for the public and secret API keys. The respective values are shown below:
+You can point the stack to an existing MLflow tracking server for run and metric logging. Example:
 
 ```yaml
-# For production deployment with external PostgreSQL
-langfuse:
-  postgresql:
-    deploy: true # If you want to use an external PostgreSQL, set this to false
-  langfuse:
-    additionalEnv:
-    - name: DATABASE_URL
-      value: "postgresql://username:password@postgres-host:5432/langfuse" # Your PostgreSQL connection string
-    - name: LANGFUSE_INIT_ORG_ID
-      value: ... # Optional: Pre-create organization
-    - name: LANGFUSE_INIT_PROJECT_ID
-      value: ... # Optional: Pre-create project
-    - name: LANGFUSE_INIT_PROJECT_PUBLIC_KEY
-      value: ... # Optional: Set initial public key
-    - name: LANGFUSE_INIT_PROJECT_SECRET_KEY
-      value: ... # Optional: Set initial secret key
-    - name: LANGFUSE_INIT_USER_EMAIL
-      value: ... # Optional: Create initial user
-    - name: LANGFUSE_INIT_USER_NAME
-      value: ... # Optional: Initial user name
-    - name: LANGFUSE_INIT_USER_PASSWORD
-      value: ... # Optional: Initial user password
+mlflow:
+  trackingUri: "http://mlflow:5000"
+  experimentName: "rag-template"
+  apiToken: "" # optional
 ```
 
-Besides, you can deploy Langfuse in a two-step approach. First, you deploy Langfuse without the API keys, and then you can create the API keys via the Web UI. Therefore, after deployment, you have to sign up in the Web UI and create a project in the local Langfuse instance, create API keys via the settings; see below.
-
-![langfuse-api-key](./figures/langfuse-api-access.png)
-
-Default values for the deployment are provided in the `rag/values.yaml` file under the `langfuse` key.
-
-> 📝 NOTE: Langfuse utilizes a PostgreSQL database under the hood.
->In production, it is recommended to use the [STACKIT Postgresflex](https://www.stackit.de/en/product/stackit-postgresql-flex/) instead of the Postgres deployment bundled with Langfuse.
->You have to change the following values to use [STACKIT Postgresflex](https://www.stackit.de/en/product/stackit-postgresql-flex/):
->
->```yaml
->langfuse:
->  deploy: false
->  host: ...
->  auth:
->    username: ...
->    password: ...
->    database: ...
+Default values for the deployment are provided in the `rag/values.yaml` file under the `mlflow` key.
 >```
 >
 >All values containing `...` are placeholders and have to be replaced with real values.
@@ -219,13 +184,9 @@ features:
   keydb:
     enabled: false # Disable KeyDB for production
 
-langfuse:
-  valkey:
-    deploy: false # Use Redis instead of KeyDB
-  langfuse:
-    additionalEnv:
-    - name: REDIS_CONNECTION_STRING
-      value: "redis:"
+mlflow:
+  trackingUri: "http://mlflow:5000"
+  experimentName: "rag-template"
 ```
 
 ### 1.4 Frontend
@@ -263,10 +224,9 @@ backend:
     # Required: Basic authentication for the backend API
     basicAuth: ... # Set your basic auth credentials
 
-    # Required: Langfuse API keys for observability
-    langfuse:
-      publicKey: ... # Your Langfuse public key
-      secretKey: ... # Your Langfuse secret key
+    # MLflow observability (optional token)
+    mlflow:
+      apiToken: "" # Set if your MLflow backend requires auth
 
     # Required: API keys for your chosen LLM provider
     # STACKIT LLM provider
@@ -308,10 +268,10 @@ backend:
       ERROR_MESSAGES_NO_OR_EMPTY_COLLECTION: "No documents were provided for searching."
       ERROR_MESSAGES_HARMFUL_QUESTION: "I'm sorry, but harmful requests cannot be processed."
       ERROR_MESSAGES_NO_ANSWER_FOUND: "I'm sorry, I couldn't find an answer with the context provided."
-    # Settings for the evaluation. You can specify the datasetname, as well as the path (in the container) where the dataset is located.
-    langfuse:
-      LANGFUSE_DATASET_NAME: "test_ds"
-      LANGFUSE_DATASET_FILENAME: "/app/test_data.json"
+    # Settings for the evaluation. You can specify the dataset name, as well as the path (in the container) where the dataset is located.
+    mlflow:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MLFLOW_EXPERIMENT_NAME: "rag-eval"
 
     ragas:
       RAGAS_IS_DEBUG: false

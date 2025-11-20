@@ -19,9 +19,9 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "configmap.langfuseName" . }}
+  name: {{ template "configmap.mlflowName" . }}
 data:
-  {{- range $key, $value := .Values.backend.envs.langfuse }}
+  {{- range $key, $value := .Values.backend.envs.mlflow }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
 
