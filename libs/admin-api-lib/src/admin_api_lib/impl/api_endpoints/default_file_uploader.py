@@ -22,6 +22,7 @@ from admin_api_lib.models.status import Status
 from admin_api_lib.impl.key_db.file_status_key_value_store import FileStatusKeyValueStore
 from admin_api_lib.information_enhancer.information_enhancer import InformationEnhancer
 from admin_api_lib.utils.utils import sanitize_document_name
+from rag_core_lib.context import get_tenant_id, set_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,8 @@ class DefaultFileUploader(FileUploader):
             content = await file.read()
             s3_path = await self._asave_new_document(content, file.filename, source_name)
 
-            task = asyncio.create_task(self._handle_source_upload(s3_path, source_name, file.filename, base_url))
+            tenant_id = get_tenant_id()
+            task = asyncio.create_task(self._handle_source_upload(s3_path, source_name, file.filename, base_url, tenant_id))
             task.add_done_callback(self._log_task_exception)
             self._background_tasks.append(task)
         except ValueError as e:
@@ -160,7 +162,10 @@ class DefaultFileUploader(FileUploader):
         source_name: str,
         file_name: str,
         base_url: str,
+        tenant_id: str | None = None,
     ):
+        if tenant_id:
+            set_tenant_id(tenant_id)
         try:
             # Run blocking extractor API call in thread pool to avoid blocking event loop
             information_pieces = await asyncio.to_thread(

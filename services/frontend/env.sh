@@ -1,11 +1,11 @@
 #!/bin/sh
-# Replace all environment variables starting with VITE_ in the files in /usr/share/nginx/html
+# Generate config.js with environment variables starting with VITE_
+echo "window.config = {" > /usr/share/nginx/html/config.js
 for i in $(env | grep VITE_)
 do
     key=$(echo $i | cut -d '=' -f 1)
     value=$(echo $i | cut -d '=' -f 2-)
-    # sed All files
-    # find /usr/share/nginx/html -type f -exec sed -i "s|${key}|${value}|g" '{}' +
-    # sed JS and CSS only
-    find /usr/share/nginx/html -type f \( -name '*.js' -o -name '*.css' \) -exec sed -i "s|${key}|${value}|g" '{}' +
+    echo "  \"$key\": \"$value\"," >> /usr/share/nginx/html/config.js
 done
+echo "};" >> /usr/share/nginx/html/config.js
+

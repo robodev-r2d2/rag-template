@@ -10,6 +10,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 from rag_core_api.embeddings.embedder import Embedder
 from rag_core_api.impl.settings.vector_db_settings import VectorDatabaseSettings
 from rag_core_api.vector_databases.vector_database import VectorDatabase
+from rag_core_lib.context import get_tenant_id
 
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,11 @@ class QdrantDatabase(VectorDatabase):
             A list of documents that match the search query and filters, including related documents.
         """
         try:
+            tenant_id = get_tenant_id()
+            if tenant_id:
+                filter_kwargs = filter_kwargs or {}
+                filter_kwargs["tenant_id"] = tenant_id
+
             search_params = self._search_kwargs_builder(search_kwargs=search_kwargs, filter_kwargs=filter_kwargs)
 
             retriever = self._vectorstore.as_retriever(query=query, search_kwargs=search_params)
@@ -168,14 +174,12 @@ class QdrantDatabase(VectorDatabase):
         -------
         None
         """
-        self._vectorstore = self._vectorstore.from_documents(
-            documents,
-            embedding=self._embedder.get_embedder(),
-            sparse_embedding=self._sparse_embedder,
-            location=self._settings.location,
-            collection_name=self._settings.collection_name,
-            retrieval_mode=self._settings.retrieval_mode,
-        )
+        tenant_id = get_tenant_id()
+        if tenant_id:
+            for doc in documents:
+                doc.metadata["tenant_id"] = tenant_id
+
+        self._vectorstore.add_documents(documents)
 
     def delete(self, delete_request: dict) -> None:
         """
@@ -191,9 +195,13 @@ class QdrantDatabase(VectorDatabase):
         -------
         None
         """
+        tenant_id = get_tenant_id()
+        if tenant_id:
+            delete_request["tenant_id"] = tenant_id
+
         filter_conditions = [
             models.FieldCondition(
-                key=key,
+                key="metadata." + key,
                 match=models.MatchValue(value=value),
             )
             for key, value in delete_request.items()

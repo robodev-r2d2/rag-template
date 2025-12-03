@@ -25,6 +25,7 @@ from admin_api_lib.utils.utils import sanitize_document_name
 from admin_api_lib.rag_backend_client.openapi_client.models.information_piece import (
     InformationPiece as RagInformationPiece,
 )
+from rag_core_lib.context import get_tenant_id, set_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,10 @@ class DefaultSourceUploader(SourceUploader):
             self._check_if_already_in_processing(source_name)
             self._key_value_store.upsert(source_name, Status.PROCESSING)
 
-            thread = Thread(target=self._thread_worker, args=(source_name, source_type, kwargs, self._settings.timeout))
+            self._key_value_store.upsert(source_name, Status.PROCESSING)
+
+            tenant_id = get_tenant_id()
+            thread = Thread(target=self._thread_worker, args=(source_name, source_type, kwargs, self._settings.timeout, tenant_id))
             thread.start()
             self._background_threads.append(thread)
         except ValueError as e:
@@ -138,7 +142,9 @@ class DefaultSourceUploader(SourceUploader):
         if any(s == Status.PROCESSING for s in existing):
             raise ValueError(f"Document {source_name} is already in processing state")
 
-    def _thread_worker(self, source_name, source_type, kwargs, timeout):
+    def _thread_worker(self, source_name, source_type, kwargs, timeout, tenant_id=None):
+        if tenant_id:
+            set_tenant_id(tenant_id)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:

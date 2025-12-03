@@ -28,6 +28,9 @@ spec:
             - /bin/sh
             - "-c"
             - "cp -r /app/frontend/. /usr/share/nginx/html && /bin/sh /app/env.sh"
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 30
         securityContext:
           runAsUser: 101
           runAsNonRoot: true
@@ -51,6 +54,7 @@ spec:
           - secretRef:
               name: "vite-auth"
           {{- end }}
+
       {{- if .Values.shared.imagePullSecret }}
       imagePullSecrets:
       - name: {{ .Values.shared.imagePullSecret.name }}

@@ -1,11 +1,39 @@
 import axios, { AxiosProgressEvent } from 'axios';
+import { authService } from '@shared/auth/auth.service';
 import { DocumentModel } from "../models/document.model.ts";
 
-axios.defaults.baseURL = import.meta.env.VITE_ADMIN_URL + "/api";
-axios.defaults.auth = {
-    username: import.meta.env.VITE_AUTH_USERNAME,
-    password: import.meta.env.VITE_AUTH_PASSWORD
-};
+const runtimeConfig = (window as any).config || {};
+const isPlaceholder = (value: string | undefined) =>
+    !value || /^VITE_[A-Z0-9_]+$/.test(value);
+
+const pickValue = (...candidates: Array<string | undefined>) =>
+    candidates.find((v) => !isPlaceholder(v));
+
+const rawBaseUrl = pickValue(
+    runtimeConfig.VITE_ADMIN_API_URL,
+    import.meta.env.VITE_ADMIN_API_URL,
+    runtimeConfig.VITE_ADMIN_URL,
+    import.meta.env.VITE_ADMIN_URL,
+    window.location.origin
+);
+const normalizedBaseUrl = rawBaseUrl?.replace(/\/+$/, '') || '';
+const apiBaseUrl = /\/api$/.test(normalizedBaseUrl)
+    ? normalizedBaseUrl
+    : `${normalizedBaseUrl}/api`;
+
+const apiClient = axios.create({
+    baseURL: apiBaseUrl
+});
+
+// Attach Keycloak access token to every admin API request
+apiClient.interceptors.request.use(async (config) => {
+    const token = await authService.getAccessToken();
+    if (token) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 // confluence configuration interface
 export interface ConfluenceConfig {
@@ -28,7 +56,7 @@ export interface SitemapConfig {
 export class DocumentAPI {
     static async loadDocuments(): Promise<DocumentModel[]> {
         try {
-            const response = await axios.get<DocumentModel[]>('/all_documents_status');
+            const response = await apiClient.get<DocumentModel[]>('/all_documents_status');
             return response.data;
         } catch (error) {
             this.handleError(error);
@@ -40,7 +68,7 @@ export class DocumentAPI {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await axios.post<null>('/upload_file', formData, {
+            const response = await apiClient.post<null>('/upload_file', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
@@ -75,7 +103,7 @@ export class DocumentAPI {
                 payload.push({ key: 'max_pages', value: String(config.maxPages) });
             }
             // include required query parameters
-            await axios.post<void>('/upload_source', payload, {
+            await apiClient.post<void>('/upload_source', payload, {
                 params: { source_type: 'confluence', name: config.name }
             });
         } catch(error) {
@@ -115,7 +143,7 @@ export class DocumentAPI {
             }
 
             // include required query parameters
-            await axios.post<void>('/upload_source', payload, {
+            await apiClient.post<void>('/upload_source', payload, {
                 params: { source_type: 'sitemap', name: config.name }
             });
         } catch(error) {
@@ -125,7 +153,7 @@ export class DocumentAPI {
 
     static async deleteDocument(documentId: string): Promise<void> {
         try {
-            await axios.delete<void>(`/delete_document/${documentId}`);
+            await apiClient.delete<void>(`/delete_document/${documentId}`);
         } catch (error) {
             this.handleError(error);
         }
@@ -133,7 +161,7 @@ export class DocumentAPI {
 
     static async getDocumentReference(id: string): Promise<Blob> {
         try {
-            const response = await axios.get(`/document_reference/${id}`, {
+            const response = await apiClient.get(`/document_reference/${id}`, {
                 responseType: 'blob'
             });
             return response.data;

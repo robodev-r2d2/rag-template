@@ -15,6 +15,8 @@ repository = "https://github.com/stackitcloud/rag-template"
 [tool.poetry.dependencies]
 python = "^3.13"
 rag-core-api = { path = "../../libs/rag-core-api", develop = true}
+python-keycloak = "^5.0.0"
+
 
 [tool.poetry.group.dev.dependencies]
 debugpy = "^1.8.14"

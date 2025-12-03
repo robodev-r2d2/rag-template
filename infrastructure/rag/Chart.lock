@@ -14,5 +14,8 @@ dependencies:
 - name: ollama
   repository: https://otwld.github.io/ollama-helm/
   version: 1.30.0
-digest: sha256:bdcbd61348805d9135cabd97c80cd08e774f479eedcbc686dc851ca55fb4dc4c
-generated: "2025-10-10T08:41:01.890585511Z"
+- name: keycloak
+  repository: https://codecentric.github.io/helm-charts
+  version: 18.4.3
+digest: sha256:d23787f5212af8bef31233abd10c7beec071d02608dba7d714b222e9a935b2cf
+generated: "2025-11-23T20:57:45.79160712+01:00"

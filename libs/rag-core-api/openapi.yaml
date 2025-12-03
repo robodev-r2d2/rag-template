@@ -4,6 +4,8 @@ info:
   description: The perfect rag solution.
   title: STACKIT RAG
   version: 1.0.0
+security:
+- BearerAuth: []
 servers:
 - url: /
 paths:
@@ -252,3 +254,8 @@ components:
       - type
       title: file
       type: object
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

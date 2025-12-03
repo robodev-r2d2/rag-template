@@ -25,6 +25,9 @@ app = FastAPI(
 
 app.include_router(router)
 
+from admin_api_lib.auth import AuthMiddleware
+app.add_middleware(AuthMiddleware)
+
 container = DependencyContainer()
 container.wire(modules=[admin_api])
 app.container = container

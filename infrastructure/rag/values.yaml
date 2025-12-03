@@ -18,6 +18,44 @@ features:
     enabled: true
   mcp:
     enabled: true
+  keycloak:
+    enabled: true
+
+keycloak:
+  image:
+    tag: "24.0.1"
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start-dev"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    servicePort: http
+    rules:
+      - host: keycloak.rag.localhost
+        paths:
+          - path: /
+            pathType: Prefix
+
+  postgresql:
+    enabled: false
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: "admin"
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: "admin"
+    - name: KC_PROXY
+      value: "edge"
+    - name: KC_DB
+      value: "postgres"
+    - name: KC_DB_URL
+      value: "jdbc:postgresql://rag-postgresql:5432/keycloak"
+    - name: KC_DB_USERNAME
+      value: "postgres"
+    - name: KC_DB_PASSWORD
+      value: "postgres"
+    - name: KC_HTTP_RELATIVE_PATH
+      value: "/auth"
 
 backend:
 
@@ -182,7 +220,7 @@ backend:
     langfuse:
       LANGFUSE_DATASET_NAME: "rag_test_ds"
       LANGFUSE_DATASET_FILENAME: "/app/test_data.json"
-      LANGFUSE_HOST: "http://rag-langfuse-web:3000" #NOTE: http protocol needs to be defined!
+      LANGFUSE_HOST: "http://rag-langfuse-web:80" #NOTE: http protocol needs to be defined!
     ragClassTypes:
       RAG_CLASS_TYPE_LLM_TYPE: "stackit"
     ragas:
@@ -222,6 +260,10 @@ backend:
     chatHistory:
       CHAT_HISTORY_LIMIT: 4
       CHAT_HISTORY_REVERSE: true
+    keycloak:
+      KEYCLOAK_REALM_NAME: "rag"
+      KEYCLOAK_CLIENT_ID: "rag-backend"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
 
 frontend:
   name: frontend
@@ -255,6 +297,8 @@ frontend:
       VITE_CHAT_URL: "http://rag.localhost"
       VITE_ADMIN_URL: "http://admin.rag.localhost"
       VITE_ADMIN_API_URL: "http://admin.rag.localhost/api"
+      VITE_KEYCLOAK_AUTHORITY: "http://keycloak.rag.localhost/auth/realms/rag"
+      VITE_KEYCLOAK_CLIENT_ID: "rag-frontend"
 
 adminBackend:
   replicaCount: 1
@@ -353,6 +397,10 @@ adminBackend:
       USECASE_KEYVALUE_HOST: "rag-keydb"
     sourceUploader:
       SOURCE_UPLOADER_TIMEOUT: 3600
+    keycloak:
+      KEYCLOAK_REALM_NAME: "rag"
+      KEYCLOAK_CLIENT_ID: "rag-backend"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
 
 extractor:
   replicaCount: 1
@@ -451,7 +499,7 @@ shared:
     - rag.localhost
     - admin.rag.localhost
     basicAuth:
-      enabled: true
+      enabled: false
     tls:
       enabled: true
       host: rag.localhost
@@ -555,6 +603,8 @@ langfuse:
       username: postgres
       password: postgres
       database: langfuse
+    image:
+      tag: "16"
 
   # Redis Configuration (external KeyDB)
   redis:

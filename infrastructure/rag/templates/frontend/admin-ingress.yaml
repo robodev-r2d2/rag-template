@@ -5,8 +5,6 @@ kind: Ingress
 metadata:
   name: {{ include "ingress.adminFrontendFullname" . }}
   annotations:
-    nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth
     {{- if .Values.shared.config.tls.enabled }}
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     {{- else }}
