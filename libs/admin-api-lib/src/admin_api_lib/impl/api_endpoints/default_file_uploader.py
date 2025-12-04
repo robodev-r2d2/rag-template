@@ -104,7 +104,9 @@ class DefaultFileUploader(FileUploader):
             s3_path = await self._asave_new_document(content, file.filename, source_name)
 
             tenant_id = get_tenant_id()
-            task = asyncio.create_task(self._handle_source_upload(s3_path, source_name, file.filename, base_url, tenant_id))
+            task = asyncio.create_task(
+                self._handle_source_upload(s3_path, source_name, file.filename, base_url, tenant_id)
+            )
             task.add_done_callback(self._log_task_exception)
             self._background_tasks.append(task)
         except ValueError as e:

@@ -103,7 +103,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 else "-----BEGIN PUBLIC KEY-----\n" + raw_public_key + "\n-----END PUBLIC KEY-----"
             )
         return self._public_key_pem
-    
+
     def _refresh_public_key_pem(self):
         """Force refresh PEM public key (in case of key rotation)."""
         raw_public_key = keycloak_openid.public_key().strip()
@@ -156,7 +156,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         jwks_sources = []
         if issuer:
-            jwks_sources.append(("issuer", self._get_jwks_for_issuer(issuer), lambda: self._refresh_jwks_for_issuer(issuer)))
+            jwks_sources.append(
+                ("issuer", self._get_jwks_for_issuer(issuer), lambda: self._refresh_jwks_for_issuer(issuer))
+            )
         jwks_sources.append(("default", self._get_jwks(), self._refresh_jwks))
 
         last_error = None
@@ -164,7 +166,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
             try:
                 return _decode_with_keys(jwks_obj, name)
             except InvalidSignatureError as sig_err:
-                logger.info("JWKS signature failed (kid=%s, alg=%s, source=%s), refreshing and retrying", kid, alg, name)
+                logger.info(
+                    "JWKS signature failed (kid=%s, alg=%s, source=%s), refreshing and retrying", kid, alg, name
+                )
                 last_error = sig_err
                 try:
                     return _decode_with_keys(refresher(), name + "-refreshed")
@@ -249,5 +253,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         return await call_next(request)

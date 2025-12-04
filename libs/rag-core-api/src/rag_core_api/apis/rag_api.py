@@ -29,13 +29,14 @@ from fastapi import (  # noqa: F401
 
 import rag_core_api.impl
 from rag_core_api.apis.rag_api_base import BaseRagApi
+from rag_core_api.models.extra_models import TokenModel  # noqa: F401
 from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
+from rag_core_api.security_api import get_token_BearerAuth
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 ns_pkg = rag_core_api.impl
@@ -66,6 +67,9 @@ async def chat(
     request: Request,
     session_id: str = Path(..., description=""),
     chat_request: ChatRequest = Body(None, description="Chat with RAG."),
+    token_BearerAuth: TokenModel = Security(
+        get_token_BearerAuth
+    ),
 ) -> ChatResponse | None:
     """
     Asynchronously handles the chat endpoint for the RAG API.
@@ -78,6 +82,8 @@ async def chat(
         The session ID for the chat.
     chat_request : ChatRequest, optional
         The chat request payload
+    token_BearerAuth : TokenModel
+        The bearer authentication token.
 
     Returns
     -------
@@ -121,9 +127,18 @@ async def chat(
     tags=["rag"],
     response_model_by_alias=True,
 )
-async def evaluate() -> None:
+async def evaluate(
+    token_BearerAuth: TokenModel = Security(
+        get_token_BearerAuth
+    ),
+) -> None:
     """
     Asynchronously evaluate the RAG.
+
+    Paraemeters
+    ----------
+    token_BearerAuth : TokenModel
+        The bearer authentication token.
 
     Returns
     -------
@@ -146,6 +161,9 @@ async def evaluate() -> None:
 )
 async def remove_information_piece(
     delete_request: DeleteRequest = Body(None, description=""),
+    token_BearerAuth: TokenModel = Security(
+        get_token_BearerAuth
+    ),
 ) -> None:
     """
     Asynchronously removes information pieces.
@@ -156,6 +174,8 @@ async def remove_information_piece(
     ----------
     delete_request : DeleteRequest
         The request body containing the details for the information piece to be removed.
+    token_BearerAuth : TokenModel
+        The bearer authentication token.
 
     Returns
     -------
@@ -177,6 +197,9 @@ async def remove_information_piece(
 )
 async def upload_information_piece(
     information_piece: List[InformationPiece] = Body(None, description=""),
+    token_BearerAuth: TokenModel = Security(
+        get_token_BearerAuth
+    ),
 ) -> None:
     """
     Asynchronously uploads information pieces for vectordatabase.
@@ -187,6 +210,8 @@ async def upload_information_piece(
     ----------
     information_piece : List[InformationPiece]
         A list of information pieces to be uploaded (default None).
+    token_BearerAuth : TokenModel
+        The bearer authentication token.
 
     Returns
     -------

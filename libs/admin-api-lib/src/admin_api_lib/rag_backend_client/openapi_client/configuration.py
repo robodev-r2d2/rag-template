@@ -13,14 +13,14 @@ Do not edit the class manually.
 
 
 import copy
-import http.client as httplib
 import logging
+from logging import FileHandler
 import multiprocessing
 import sys
-from logging import FileHandler
 from typing import Optional
-
 import urllib3
+
+import http.client as httplib
 
 JSON_SCHEMA_VALIDATION_KEYWORDS = {
     "multipleOf",
@@ -67,6 +67,7 @@ class Configuration:
       in PEM format.
     :param retries: Number of retries for API requests.
 
+    :Example:
     """
 
     _default = None
@@ -384,6 +385,14 @@ class Configuration:
         :return: The Auth Settings information dict.
         """
         auth = {}
+        if self.access_token is not None:
+            auth["BearerAuth"] = {
+                "type": "bearer",
+                "in": "header",
+                "format": "JWT",
+                "key": "Authorization",
+                "value": "Bearer " + self.access_token,
+            }
         return auth
 
     def to_debug_report(self):

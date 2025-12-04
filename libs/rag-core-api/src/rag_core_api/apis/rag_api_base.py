@@ -9,7 +9,7 @@ from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
-
+from rag_core_api.security_api import get_token_BearerAuth
 
 class BaseRagApi:
     """Base class for RAG API.

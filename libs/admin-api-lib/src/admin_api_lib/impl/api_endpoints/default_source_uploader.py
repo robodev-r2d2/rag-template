@@ -109,7 +109,9 @@ class DefaultSourceUploader(SourceUploader):
             self._key_value_store.upsert(source_name, Status.PROCESSING)
 
             tenant_id = get_tenant_id()
-            thread = Thread(target=self._thread_worker, args=(source_name, source_type, kwargs, self._settings.timeout, tenant_id))
+            thread = Thread(
+                target=self._thread_worker, args=(source_name, source_type, kwargs, self._settings.timeout, tenant_id)
+            )
             thread.start()
             self._background_threads.append(thread)
         except ValueError as e:
