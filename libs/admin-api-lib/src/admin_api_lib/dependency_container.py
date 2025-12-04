@@ -57,6 +57,7 @@ from admin_api_lib.rag_backend_client.openapi_client.api_client import (
 from admin_api_lib.rag_backend_client.openapi_client.configuration import (
     Configuration as RagConfiguration,
 )
+from admin_api_lib.auth import keycloak_openid
 from rag_core_lib.impl.embeddings.langchain_community_embedder import (
     LangchainCommunityEmbedder,
 )
@@ -75,6 +76,15 @@ from rag_core_lib.impl.settings.stackit_embedder_settings import StackitEmbedder
 from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
 from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
+
+logger = logging.getLogger(__name__)
+
+
+def create_rag_configuration(host: str) -> RagConfiguration:
+    """Create RAG configuration with access token."""
+    token = keycloak_openid.token(grant_type="client_credentials")
+    access_token = token.get("access_token")
+    return RagConfiguration(host=host, access_token=access_token)
 
 
 class DependencyContainer(DeclarativeContainer):
@@ -149,7 +159,7 @@ class DependencyContainer(DeclarativeContainer):
     document_extractor_api_client = Singleton(ApiClient, extractor_api_configuration)
     document_extractor = Singleton(ExtractorApi, document_extractor_api_client)
 
-    rag_api_configuration = Singleton(RagConfiguration, host=rag_api_settings.host)
+    rag_api_configuration = Singleton(create_rag_configuration, host=rag_api_settings.host)
     rag_api_client = Singleton(RagApiClient, configuration=rag_api_configuration)
     rag_api = Singleton(RagApi, rag_api_client)
 
