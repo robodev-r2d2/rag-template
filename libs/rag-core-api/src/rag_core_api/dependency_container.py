@@ -1,6 +1,7 @@
 """Module containing the dependency injection container for managing application dependencies."""
 
 import qdrant_client
+from qdrant_client import models
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import (  # noqa: WOT001
     Configuration,
@@ -71,6 +72,48 @@ from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRun
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 
 
+def _build_vectorstore(client, embedding_model, sparse_embedding_model, settings, retrieval_mode):
+    """Ensure Qdrant collection exists and return a ready vector store."""
+    # Determine collection vector sizes/config
+    try:
+        dim = len(embedding_model.embed_query("health check"))
+    except Exception:
+        dim = 1536  # sensible default if embedder call fails
+
+    sparse_vectors = {
+        # Match langchain-qdrant default naming to avoid "vector name" errors.
+        "langchain-sparse": models.SparseVectorParams(index=models.SparseIndexParams(on_disk=False)),
+        "text-sparse": models.SparseVectorParams(index=models.SparseIndexParams(on_disk=False)),
+    }
+
+    # Recreate collection if missing or missing required sparse vectors
+    needs_recreate = False
+    if not client.collection_exists(settings.collection_name):
+        needs_recreate = True
+    else:
+        info = client.get_collection(settings.collection_name)
+        current_sparse = set(info.config.params.sparse_vectors.keys()) if info.config.params.sparse_vectors else set()
+        required_sparse = set(sparse_vectors.keys())
+        if not required_sparse.issubset(current_sparse):
+            needs_recreate = True
+
+    if needs_recreate:
+        client.recreate_collection(
+            collection_name=settings.collection_name,
+            vectors_config=models.VectorParams(size=dim, distance=models.Distance.COSINE),
+            sparse_vectors_config=sparse_vectors,
+        )
+
+    return QdrantVectorStore(
+        client=client,
+        collection_name=settings.collection_name,
+        embedding=embedding_model,
+        sparse_embedding=sparse_embedding_model,
+        validate_collection_config=False,
+        retrieval_mode=retrieval_mode,
+    )
+
+
 class DependencyContainer(DeclarativeContainer):
     """Dependency injection container for managing application dependencies."""
 
@@ -113,12 +156,11 @@ class DependencyContainer(DeclarativeContainer):
     )
 
     vectorstore = Singleton(
-        QdrantVectorStore,
+        _build_vectorstore,
         client=vectordb_client,
-        collection_name=vector_database_settings.collection_name,
-        embedding=embedder,
-        sparse_embedding=sparse_embedder,
-        validate_collection_config=False,
+        embedding_model=embedder,
+        sparse_embedding_model=sparse_embedder,
+        settings=vector_database_settings,
         retrieval_mode=vector_database_settings.retrieval_mode,
     )
 

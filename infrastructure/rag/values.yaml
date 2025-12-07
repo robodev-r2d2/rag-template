@@ -264,7 +264,7 @@ backend:
       KEYCLOAK_REALM_NAME: "rag"
       KEYCLOAK_CLIENT_ID: "rag-backend"
       KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
-      KEYCLOAK_CLIENT_SECRET: "rag-backend-client-secret"
+      KEYCLOAK_CLIENT_SECRET: "3GoXGiHyaiviHvVlkjysU2DY5lGGQjhk"
 
 frontend:
   name: frontend
@@ -402,7 +402,7 @@ adminBackend:
       KEYCLOAK_REALM_NAME: "rag"
       KEYCLOAK_CLIENT_ID: "rag-backend"
       KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
-      KEYCLOAK_CLIENT_SECRET: "rag-backend-client-secret"
+      KEYCLOAK_CLIENT_SECRET: "3GoXGiHyaiviHvVlkjysU2DY5lGGQjhk"
 
 extractor:
   replicaCount: 1

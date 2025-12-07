@@ -6,6 +6,7 @@ from redis import Redis
 
 from admin_api_lib.impl.settings.key_value_settings import KeyValueSettings
 from admin_api_lib.models.status import Status
+from rag_core_lib.context import get_tenant_id
 
 
 class FileStatusKeyValueStore:
@@ -40,13 +41,14 @@ class FileStatusKeyValueStore:
             The settings object containing the host and port information for the Redis connection.
         """
         self._redis = Redis(host=settings.host, port=settings.port, decode_responses=True)
+        self._base_key = self.STORAGE_KEY
 
     @staticmethod
     def _to_str(file_name: str, file_status: Status) -> str:
         return json.dumps(
             {
                 FileStatusKeyValueStore.INNER_FILENAME_KEY: file_name,
-                FileStatusKeyValueStore.INNER_STATUS_KEY: file_status,
+            FileStatusKeyValueStore.INNER_STATUS_KEY: file_status,
             }
         )
 
@@ -57,6 +59,14 @@ class FileStatusKeyValueStore:
             content_dict[FileStatusKeyValueStore.INNER_FILENAME_KEY],
             content_dict[FileStatusKeyValueStore.INNER_STATUS_KEY],
         )
+
+    def _tenant_storage_key(self) -> str:
+        """Return the Redis key scoped to the current tenant."""
+        tenant_id = get_tenant_id()
+        if tenant_id:
+            return f"{self._base_key}:{tenant_id}"
+        # Fallback (should not happen because auth enforces tenant_id); keep backwards compatibility
+        return self._base_key
 
     def upsert(self, file_name: str, file_status: Status) -> None:
         """
@@ -75,8 +85,9 @@ class FileStatusKeyValueStore:
         -------
         None
         """
+        storage_key = self._tenant_storage_key()
         self.remove(file_name)
-        self._redis.sadd(self.STORAGE_KEY, FileStatusKeyValueStore._to_str(file_name, file_status))
+        self._redis.sadd(storage_key, FileStatusKeyValueStore._to_str(file_name, file_status))
 
     def remove(self, file_name: str) -> None:
         """
@@ -91,11 +102,12 @@ class FileStatusKeyValueStore:
         -------
         None
         """
+        storage_key = self._tenant_storage_key()
         all_documents = self.get_all()
         correct_file_name = [x for x in all_documents if x[0] == file_name]
         for file_name_related in correct_file_name:
             self._redis.srem(
-                self.STORAGE_KEY, FileStatusKeyValueStore._to_str(file_name_related[0], file_name_related[1])
+                storage_key, FileStatusKeyValueStore._to_str(file_name_related[0], file_name_related[1])
             )
 
     def get_all(self) -> list[tuple[str, Status]]:
@@ -107,5 +119,6 @@ class FileStatusKeyValueStore:
         list[tuple[str, Status]]
             A list of tuples where each tuple contains a string and a Status object.
         """
-        all_file_informations = list(self._redis.smembers(self.STORAGE_KEY))
+        storage_key = self._tenant_storage_key()
+        all_file_informations = list(self._redis.smembers(storage_key))
         return [FileStatusKeyValueStore._from_str(x) for x in all_file_informations]
