@@ -160,6 +160,13 @@ Contains the Helm chart and other files related to infrastructure and deployment
 
 For further information, please consult the [Infrastructure README](./infrastructure/README.md).
 
+### Keycloak and external IdPs
+
+- **Broker Keycloak to other IdPs (recommended)**: Configure external IdPs (OIDC/SAML/social) in Keycloak, map or hardcode `tenant_id` onto the federated user, and keep the `tenant-id` client scope attached. Keycloak still issues the final token (with `tenant_id`) that the services accept.
+- **Replace Keycloak (not recommended)**: Possible only if your IdP issues OIDC JWTs with `tenant_id`, exposes JWKS in the expected path, and supports a client-credential flow to replace `KeycloakOpenID.token(...)`. This requires code/config changes; brokering is simpler.
+
+See `docs/Keycloak.md` for step-by-step setup and brokering details.
+
 #### 1.1.7 Libs
 
 Contains the API libraries that are used to construct the backend services in this repository. This includes core RAG functionality, admin APIs, and document extraction APIs.
@@ -483,4 +490,3 @@ The linting-settings can be changed in the `services/rag-backend/pyproject.toml`
 ## 4. Contribution Guidelines
 
 In order to contribute please consult the [CONTRIBUTING.md](./CONTRIBUTING.md).
-

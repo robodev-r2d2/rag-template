@@ -23,6 +23,7 @@ from admin_api_lib.impl.key_db.file_status_key_value_store import FileStatusKeyV
 from admin_api_lib.information_enhancer.information_enhancer import InformationEnhancer
 from admin_api_lib.utils.utils import sanitize_document_name
 from rag_core_lib.context import get_tenant_id, set_tenant_id
+from admin_api_lib.context import get_current_token, set_current_token
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,9 @@ class DefaultFileUploader(FileUploader):
             s3_path = await self._asave_new_document(content, file.filename, source_name)
 
             tenant_id = get_tenant_id()
+            token = get_current_token()
             task = asyncio.create_task(
-                self._handle_source_upload(s3_path, source_name, file.filename, base_url, tenant_id)
+                self._handle_source_upload(s3_path, source_name, file.filename, base_url, tenant_id, token)
             )
             task.add_done_callback(self._log_task_exception)
             self._background_tasks.append(task)
@@ -165,9 +167,14 @@ class DefaultFileUploader(FileUploader):
         file_name: str,
         base_url: str,
         tenant_id: str | None = None,
+        token: str | None = None,
     ):
         if tenant_id:
             set_tenant_id(tenant_id)
+        if token:
+            set_current_token(token)
+            # ensure the rag_api client uses the caller's token for this operation
+            self._rag_api.api_client.configuration.access_token = token
         try:
             # Run blocking extractor API call in thread pool to avoid blocking event loop
             information_pieces = await asyncio.to_thread(
@@ -215,6 +222,7 @@ class DefaultFileUploader(FileUploader):
                     "chunk": idx,
                     "chunk_length": len(chunk.page_content),
                     "document_url": document_url,
+                    "document": f"file:{file_name}",
                 }
             )
 

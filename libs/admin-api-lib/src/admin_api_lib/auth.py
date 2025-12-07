@@ -11,6 +11,7 @@ from jwt import InvalidSignatureError
 import requests
 from keycloak import KeycloakOpenID
 from rag_core_lib.context import set_tenant_id
+from admin_api_lib.context import set_current_token, clear_current_token
 from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
@@ -207,6 +208,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         """Authenticate request."""
+        clear_current_token()
         if request.method == "OPTIONS":
             return await call_next(request)
 
@@ -244,6 +246,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing tenant_id claim in token")
 
             set_tenant_id(tenant_id)
+            set_current_token(token)
             logger.info(f"Authenticated user {token_info.get('preferred_username')} for tenant {tenant_id}")
 
         except Exception as e:

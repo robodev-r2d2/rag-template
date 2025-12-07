@@ -26,6 +26,7 @@ from admin_api_lib.rag_backend_client.openapi_client.models.information_piece im
     InformationPiece as RagInformationPiece,
 )
 from rag_core_lib.context import get_tenant_id, set_tenant_id
+from admin_api_lib.context import get_current_token, set_current_token
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +110,10 @@ class DefaultSourceUploader(SourceUploader):
             self._key_value_store.upsert(source_name, Status.PROCESSING)
 
             tenant_id = get_tenant_id()
+            token = get_current_token()
             thread = Thread(
-                target=self._thread_worker, args=(source_name, source_type, kwargs, self._settings.timeout, tenant_id)
+                target=self._thread_worker,
+                args=(source_name, source_type, kwargs, self._settings.timeout, tenant_id, token),
             )
             thread.start()
             self._background_threads.append(thread)
@@ -144,15 +147,18 @@ class DefaultSourceUploader(SourceUploader):
         if any(s == Status.PROCESSING for s in existing):
             raise ValueError(f"Document {source_name} is already in processing state")
 
-    def _thread_worker(self, source_name, source_type, kwargs, timeout, tenant_id=None):
+    def _thread_worker(self, source_name, source_type, kwargs, timeout, tenant_id=None, token=None):
         if tenant_id:
             set_tenant_id(tenant_id)
+        if token:
+            set_current_token(token)
+            self._rag_api.api_client.configuration.access_token = token
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(
                 asyncio.wait_for(
-                    self._handle_source_upload(source_name=source_name, source_type=source_type, kwargs=kwargs),
+                    self._handle_source_upload(source_name=source_name, source_type=source_type, kwargs=kwargs, token=token),
                     timeout=timeout,
                 )
             )
@@ -170,7 +176,14 @@ class DefaultSourceUploader(SourceUploader):
         source_name: str,
         source_type: StrictStr,
         kwargs: list[KeyValuePair],
+        token: str | None = None,
     ):
+        if token:
+            set_current_token(token)
+            self._rag_api.api_client.configuration.access_token = token
+        tenant_id = get_tenant_id()
+        if tenant_id:
+            set_tenant_id(tenant_id)
         try:
             # Run blocking extractor API call in thread pool to avoid blocking event loop
             information_pieces = await asyncio.to_thread(
@@ -195,6 +208,10 @@ class DefaultSourceUploader(SourceUploader):
             enhanced_documents = await self._information_enhancer.ainvoke(
                 chunked_documents, config={"max_concurrency": 1}
             )
+
+            # stamp document id so deletes can filter correctly in vector DB
+            for doc in enhanced_documents:
+                doc.metadata["document"] = source_name
 
             rag_information_pieces: list[RagInformationPiece] = []
             for doc in enhanced_documents:

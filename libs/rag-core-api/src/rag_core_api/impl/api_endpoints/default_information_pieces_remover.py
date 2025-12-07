@@ -47,7 +47,7 @@ class DefaultInformationPiecesRemover(InformationPieceRemover):
         try:
             metadata = {}
             for key_value_pair in delete_request.metadata:
-                metadata["metadata." + key_value_pair.key] = json.loads(key_value_pair.value)
+                metadata[key_value_pair.key] = json.loads(key_value_pair.value)
         except Exception:
             logger.exception("Error while parsing metadata")
             raise HTTPException(

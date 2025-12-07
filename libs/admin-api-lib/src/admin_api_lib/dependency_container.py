@@ -58,6 +58,7 @@ from admin_api_lib.rag_backend_client.openapi_client.configuration import (
     Configuration as RagConfiguration,
 )
 from admin_api_lib.auth import keycloak_openid
+from admin_api_lib.context import get_current_token
 from rag_core_lib.impl.embeddings.langchain_community_embedder import (
     LangchainCommunityEmbedder,
 )
@@ -81,6 +82,10 @@ from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSe
 def create_rag_configuration(host: str) -> RagConfiguration:
     """Create RAG configuration with access token."""
     def _access_token_provider() -> str:
+        # Prefer the current user token; fall back to client credentials.
+        user_token = get_current_token()
+        if user_token:
+            return user_token
         token = keycloak_openid.token(grant_type="client_credentials")
         return token.get("access_token")
 
