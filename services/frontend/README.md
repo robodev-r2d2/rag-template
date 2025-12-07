@@ -29,6 +29,28 @@ Install all dependencies for both apps
 npm install
 ```
 
+### Keycloak setup (once)
+
+The chat and admin apps expect Keycloak to issue tokens. Create a client for the frontends and a user that can log in:
+
+1. Sign in to Keycloak admin (e.g. `http://keycloak.rag.localhost/auth/`).
+2. Create (or reuse) the realm you target (default in `values.yaml` is `rag`).
+3. Create a new client:
+   - Client type: **Public**
+   - Client ID: **rag-frontend** (matches `VITE_KEYCLOAK_CLIENT_ID`)
+   - Root URL: `http://rag.localhost`
+   - Valid redirect URIs: add `http://rag.localhost/*` and `http://admin.rag.localhost/*` (the apps redirect to `/callback` after login).
+   - Web origins: add `http://rag.localhost` and `http://admin.rag.localhost` (or `*` for local dev only).
+   - Standard flow: **ON**; Direct access grants: **OFF** (default for public SPA clients).
+4. Create a test user in the realm and set a password (disable “Temporary” so you can log in).
+5. Ensure the frontend env matches Keycloak:
+   - `VITE_KEYCLOAK_AUTHORITY` → `http://keycloak.rag.localhost/auth/realms/rag`
+   - `VITE_KEYCLOAK_CLIENT_ID` → `rag-frontend`
+
+With these in place, the frontends will redirect unauthenticated visitors to Keycloak, handle the callback at `/callback`, and attach the access token to API calls.
+
+> If you enable ingress-level Basic Auth (e.g., via `shared.config.basicAuth.enabled` in the Helm values), the browser will prompt for Basic credentials before the app can reach Keycloak, and the redirect back from Keycloak will be blocked. Keep Basic Auth **disabled** for the frontend ingress when using Keycloak, or scope Basic Auth only to the backend/API hosts.
+
 ### Serve
 
 To serve one of the application, you can run this command at the root of your workspace.

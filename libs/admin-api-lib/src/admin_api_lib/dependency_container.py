@@ -77,8 +77,6 @@ from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
 from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 
-logger = logging.getLogger(__name__)
-
 
 def create_rag_configuration(host: str) -> RagConfiguration:
     """Create RAG configuration with access token."""

@@ -32,7 +32,11 @@ The services now enforce a `tenant_id` claim on every access token. If it is mis
    - Go to **Users** → select the user.
    - In the top tab bar you should see **Details | Attributes | Credentials | Role mapping | ...**. Open **Attributes**.
    - Click **Add attribute** → Key `tenant_id`, Value `<your-tenant-slug>` (e.g., `tenant-a`) → Save.
-   - If you don’t see an **Attributes** tab, click the kebab (⋮) → **Switch to old console** and then open **Attributes**, or use the CLI (see below).
+   - If you don’t see an **Attributes** tab:
+     - First, ensure **Realm settings → General → Unmanaged attributes** is enabled, then reload.
+     - If it’s still missing, click the kebab (⋮) → **Switch to old console**, then open **Attributes**.
+     - Or define `tenant_id` as a managed profile attribute: **Realm settings → User profile → Attributes → Add attribute** (`name=tenant_id`, required=false), then set it per user under **Users → user → Profile**.
+     - Or use the CLI (see below).
    - Repeat for each user.
 
    CLI alternative (if the UI tab is missing):

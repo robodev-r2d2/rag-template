@@ -141,4 +141,4 @@ spec:
           - name: KEYCLOAK_CLIENT_ID
             value: {{ .Values.adminBackend.envs.keycloak.KEYCLOAK_CLIENT_ID | quote }}
           - name: KEYCLOAK_CLIENT_SECRET
-            value: "rag-backend-client-secret"
+            value: {{ .Values.adminBackend.envs.keycloak.KEYCLOAK_CLIENT_SECRET | quote }}
