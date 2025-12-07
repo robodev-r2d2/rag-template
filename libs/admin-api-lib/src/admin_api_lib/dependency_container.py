@@ -80,9 +80,14 @@ from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSe
 
 def create_rag_configuration(host: str) -> RagConfiguration:
     """Create RAG configuration with access token."""
-    token = keycloak_openid.token(grant_type="client_credentials")
-    access_token = token.get("access_token")
-    return RagConfiguration(host=host, access_token=access_token)
+    class _AccessTokenProvider:
+        """Lazily fetch a fresh Keycloak access token on every use."""
+
+        def __str__(self):
+            token = keycloak_openid.token(grant_type="client_credentials")
+            return token.get("access_token")
+
+    return RagConfiguration(host=host, access_token=_AccessTokenProvider())
 
 
 class DependencyContainer(DeclarativeContainer):

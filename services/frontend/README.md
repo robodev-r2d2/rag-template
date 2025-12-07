@@ -51,6 +51,22 @@ With these in place, the frontends will redirect unauthenticated visitors to Key
 
 > If you enable ingress-level Basic Auth (e.g., via `shared.config.basicAuth.enabled` in the Helm values), the browser will prompt for Basic credentials before the app can reach Keycloak, and the redirect back from Keycloak will be blocked. Keep Basic Auth **disabled** for the frontend ingress when using Keycloak, or scope Basic Auth only to the backend/API hosts.
 
+### Keycloak setup for backend APIs (rag-backend)
+
+The backend services use client credentials to talk to Keycloak (service account flow). Create a confidential client:
+
+1. In Keycloak admin, same realm (default `rag`), go to **Clients → Create**.
+2. Client type: **Confidential**, Client ID: **rag-backend** (matches `KEYCLOAK_CLIENT_ID` in values).
+3. Enable:
+   - **Client authentication**: ON
+   - **Service accounts**: ON
+4. Credentials: generate/set a secret (e.g., `rag-backend-client-secret`), and keep it in sync with:
+   - `backend.envs.keycloak.KEYCLOAK_CLIENT_SECRET`
+   - `adminBackend.envs.keycloak.KEYCLOAK_CLIENT_SECRET` (admin-backend also uses client credentials)
+5. Tokens: leave defaults unless you need longer TTLs. Scope: ensure realm roles/scopes required by your APIs are assigned to this client’s service account.
+
+If the secret or client type don’t match, calls like `/api/upload_file` will fail with `invalid_client`.
+
 ### Serve
 
 To serve one of the application, you can run this command at the root of your workspace.
