@@ -1,5 +1,5 @@
 **/tools/_poetry
-
+**/tasks.md
 **/.env.langfuse
 **/.nx/*
 **/_poetry
