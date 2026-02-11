@@ -23,3 +23,5 @@
 #!docs/README.md
 
 src/admin_api_lib/security_api.py
+src/admin_api_lib/rag_backend_client/openapi_client/docs/**
+src/admin_api_lib/rag_backend_client/openapi_client/test/**

@@ -47,8 +47,22 @@ apiClient.interceptors.request.use(async (config) => {
 });
 
 export class ChatAPI {
-    static async callInference(request: ChatRequestModel): Promise<ChatResponseModel> {
-        const response = await apiClient.post<ChatResponseModel>(`/chat/${request.session_id}`, request);
+    static async callInference(request: ChatRequestModel, scope?: string[]): Promise<ChatResponseModel> {
+        const params = scope && scope.length > 0 ? { scope } : undefined;
+        const paramsSerializer = scope && scope.length > 0
+          ? {
+              serialize: (queryParams: Record<string, unknown>) => {
+                const searchParams = new URLSearchParams();
+                (queryParams.scope as string[]).forEach((scopeId) => searchParams.append("scope", scopeId));
+                return searchParams.toString();
+              },
+            }
+          : undefined;
+        const response = await apiClient.post<ChatResponseModel>(
+            `/chat/${request.session_id}`,
+            request,
+            { params, paramsSerializer }
+        );
         return response.data;
     }
 }

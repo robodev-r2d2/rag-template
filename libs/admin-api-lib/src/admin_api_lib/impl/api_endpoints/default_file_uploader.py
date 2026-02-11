@@ -90,6 +90,7 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
         self,
         base_url: str,
         file: UploadFile,
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload a source file for content extraction.
@@ -130,6 +131,7 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
                     run_id=run_id,
                     tenant_id=tenant_id,
                     token=token,
+                    target_space_id=target_space_id,
                 )
             )
             task.add_done_callback(self._log_task_exception)
@@ -207,6 +209,7 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
         run_id: str | None = None,
         tenant_id: str | None = None,
         token: str | None = None,
+        target_space_id: str | None = None,
     ):
         if tenant_id:
             set_tenant_id(tenant_id)
@@ -236,7 +239,11 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
 
             self._assert_not_cancelled(source_name, run_id)
             # Run blocking RAG API call in thread pool to avoid blocking event loop
-            await asyncio.to_thread(self._rag_api.upload_information_piece, rag_information_pieces)
+            await asyncio.to_thread(
+                self._rag_api.upload_information_piece,
+                rag_information_pieces,
+                target_space_id=target_space_id,
+            )
 
             if self._key_value_store.is_cancelled_or_stale(source_name, run_id):
                 await self._abest_effort_cleanup_cancelled(source_name)

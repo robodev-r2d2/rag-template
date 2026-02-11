@@ -58,6 +58,7 @@ async def _disconnected(request: Request) -> None:
     "/chat/{session_id}",
     responses={
         200: {"model": ChatResponse, "description": "OK."},
+        403: {"description": "Forbidden scope."},
         500: {"description": "Internal Server Error!"},
     },
     tags=["rag"],
@@ -67,9 +68,7 @@ async def chat(
     request: Request,
     session_id: str = Path(..., description=""),
     chat_request: ChatRequest = Body(None, description="Chat with RAG."),
-    token_BearerAuth: TokenModel = Security(
-        get_token_BearerAuth
-    ),
+    scope: List[str] = Query(None, description="Optional list of logical scope ids."),
 ) -> ChatResponse | None:
     """
     Asynchronously handles the chat endpoint for the RAG API.
@@ -82,8 +81,8 @@ async def chat(
         The session ID for the chat.
     chat_request : ChatRequest, optional
         The chat request payload
-    token_BearerAuth : TokenModel
-        The bearer authentication token.
+    scope : List[str]
+        Optional list of logical space identifiers to narrow retrieval scope.
 
     Returns
     -------
@@ -101,7 +100,7 @@ async def chat(
     request. It waits for either task to complete first and cancels the remaining tasks.
     """
     disconnect_task = create_task(_disconnected(request))
-    chat_task = create_task(BaseRagApi.subclasses[0]().chat(session_id, chat_request))
+    chat_task = create_task(BaseRagApi.subclasses[0]().chat(session_id, chat_request, scope=scope))
     done, pending = await wait(
         [disconnect_task, chat_task],
         return_when=FIRST_COMPLETED,
@@ -151,6 +150,7 @@ async def evaluate(
     "/information_pieces/remove",
     responses={
         202: {"description": "Accepted."},
+        403: {"description": "Forbidden target space"},
         404: {"description": "Ressource not Found"},
         422: {"description": "ID or metadata missing."},
         500: {"description": "Internal Server Error."},
@@ -161,6 +161,7 @@ async def evaluate(
 )
 async def remove_information_piece(
     delete_request: DeleteRequest = Body(None, description=""),
+    target_space_id: str = Query(None, description="Optional logical target space id."),
     token_BearerAuth: TokenModel = Security(
         get_token_BearerAuth
     ),
@@ -181,13 +182,17 @@ async def remove_information_piece(
     -------
     None
     """
-    return await BaseRagApi.subclasses[0]().remove_information_piece(delete_request)
+    return await BaseRagApi.subclasses[0]().remove_information_piece(
+        delete_request,
+        target_space_id=target_space_id,
+    )
 
 
 @router.post(
     "/information_pieces/upload",
     responses={
         201: {"description": "The file was successful uploaded."},
+        403: {"description": "Forbidden target space"},
         422: {"model": str, "description": "Wrong json format."},
         500: {"model": str, "description": "Internal Server Error."},
     },
@@ -197,6 +202,7 @@ async def remove_information_piece(
 )
 async def upload_information_piece(
     information_piece: List[InformationPiece] = Body(None, description=""),
+    target_space_id: str = Query(None, description="Optional logical target space id."),
     token_BearerAuth: TokenModel = Security(
         get_token_BearerAuth
     ),
@@ -217,4 +223,7 @@ async def upload_information_piece(
     -------
     None
     """
-    return await BaseRagApi.subclasses[0]().upload_information_piece(information_piece)
+    return await BaseRagApi.subclasses[0]().upload_information_piece(
+        information_piece,
+        target_space_id=target_space_id,
+    )

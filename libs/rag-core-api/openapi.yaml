@@ -30,6 +30,15 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: scope
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
       requestBody:
         content:
           application/json:
@@ -44,14 +53,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/chat_response'
           description: OK.
+        "403":
+          description: Forbidden scope.
         "500":
           description: Internal Server Error!
+      security:
+      - {}
+      - BearerAuth: []
       tags:
       - rag
     summary: QNA or Rag Chat.
   /information_pieces/remove:
     post:
       operationId: remove_information_piece
+      parameters:
+      - explode: true
+        in: query
+        name: target_space_id
+        required: false
+        schema:
+          type: string
+        style: form
       requestBody:
         content:
           application/json:
@@ -61,6 +83,8 @@ paths:
       responses:
         "202":
           description: Accepted.
+        "403":
+          description: Forbidden target space.
         "404":
           description: Ressource not Found
         "422":
@@ -73,6 +97,14 @@ paths:
   /information_pieces/upload:
     post:
       operationId: upload_information_piece
+      parameters:
+      - explode: true
+        in: query
+        name: target_space_id
+        required: false
+        schema:
+          type: string
+        style: form
       requestBody:
         content:
           application/json:
@@ -84,6 +116,8 @@ paths:
       responses:
         "201":
           description: The file was successful uploaded.
+        "403":
+          description: Forbidden target space.
         "422":
           content:
             application/json:

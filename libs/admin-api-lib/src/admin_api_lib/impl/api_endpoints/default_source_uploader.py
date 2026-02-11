@@ -86,6 +86,7 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
         source_type: StrictStr,
         name: StrictStr,
         kwargs: list[KeyValuePair],
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload the parameters for source content extraction.
@@ -118,7 +119,7 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
             token = get_current_token()
             thread = Thread(
                 target=self._thread_worker,
-                args=(source_name, source_type, kwargs, self._settings.timeout, run_id, tenant_id, token),
+                args=(source_name, source_type, kwargs, self._settings.timeout, run_id, tenant_id, token, target_space_id),
             )
             thread.start()
             self._background_threads.append(thread)
@@ -174,7 +175,17 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
             raise RuntimeError("No information pieces found")
         return information_pieces
 
-    def _thread_worker(self, source_name, source_type, kwargs, timeout, run_id: str, tenant_id=None, token=None):
+    def _thread_worker(
+        self,
+        source_name,
+        source_type,
+        kwargs,
+        timeout,
+        run_id: str,
+        tenant_id=None,
+        token=None,
+        target_space_id: str | None = None,
+    ):
         if tenant_id:
             set_tenant_id(tenant_id)
         if token:
@@ -193,6 +204,7 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
                         run_id=run_id,
                         tenant_id=tenant_id,
                         token=token,
+                        target_space_id=target_space_id,
                     ),
                     timeout=timeout,
                 )
@@ -225,6 +237,7 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
         run_id: str | None = None,
         tenant_id: str | None = None,
         token: str | None = None,
+        target_space_id: str | None = None,
     ):
         if tenant_id:
             set_tenant_id(tenant_id)
@@ -260,7 +273,11 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
 
             self._assert_not_cancelled(source_name, run_id)
             # Run blocking RAG API call in thread pool to avoid blocking event loop
-            await asyncio.to_thread(self._rag_api.upload_information_piece, rag_information_pieces)
+            await asyncio.to_thread(
+                self._rag_api.upload_information_piece,
+                rag_information_pieces,
+                target_space_id=target_space_id,
+            )
 
             if self._key_value_store.is_cancelled_or_stale(source_name, run_id):
                 await self._abest_effort_cleanup_cancelled(source_name)

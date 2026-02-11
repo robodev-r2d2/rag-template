@@ -65,7 +65,11 @@ export class DocumentAPI {
         }
     }
 
-    static async uploadDocument(file: File, onUploadProgress: (progressEvent: AxiosProgressEvent) => void): Promise<null> {
+    static async uploadDocument(
+        file: File,
+        onUploadProgress: (progressEvent: AxiosProgressEvent) => void,
+        targetSpaceId?: string,
+    ): Promise<null> {
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -74,6 +78,7 @@ export class DocumentAPI {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
+                params: targetSpaceId ? { target_space_id: targetSpaceId } : undefined,
                 onUploadProgress
             });
 
@@ -83,7 +88,7 @@ export class DocumentAPI {
         }
     }
 
-    static async loadConfluence(config: ConfluenceConfig): Promise<void> {
+    static async loadConfluence(config: ConfluenceConfig, targetSpaceId?: string): Promise<void> {
         try {
             // convert config to list of key/value items for backend
             const payload: { key: string; value: string }[] = [
@@ -106,14 +111,18 @@ export class DocumentAPI {
             }
             // include required query parameters
             await apiClient.post<void>('/upload_source', payload, {
-                params: { source_type: 'confluence', name: config.name }
+                params: {
+                    source_type: 'confluence',
+                    name: config.name,
+                    ...(targetSpaceId ? { target_space_id: targetSpaceId } : {}),
+                }
             });
         } catch(error) {
             this.handleError(error);
         }
     }
 
-    static async loadSitemap(config: SitemapConfig): Promise<void> {
+    static async loadSitemap(config: SitemapConfig, targetSpaceId?: string): Promise<void> {
         try {
             // convert config to list of key/value items for backend
             const payload = [
@@ -158,7 +167,11 @@ export class DocumentAPI {
 
             // include required query parameters
             await apiClient.post<void>('/upload_source', payload, {
-                params: { source_type: 'sitemap', name: config.name }
+                params: {
+                    source_type: 'sitemap',
+                    name: config.name,
+                    ...(targetSpaceId ? { target_space_id: targetSpaceId } : {}),
+                }
             });
         } catch(error) {
             this.handleError(error);

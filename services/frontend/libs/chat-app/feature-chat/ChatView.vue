@@ -4,12 +4,14 @@ import ChatMessages from "../ui/ChatMessages.vue";
 import ChatDisclaimer from "./ChatDisclaimer.vue";
 import { useChatStore } from "../data-access/+state/chat.store";
 import ChatDocumentContainer from "../ui/ChatDocumentContainer.vue";
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import { newUid } from "@shared/utils";
 import { iconChevronLeft, iconChevronRight } from "@sit-onyx/icons";
 import { OnyxIcon } from "@shared/ui";
 
 const chatStore = useChatStore();
+const enableScopeSelector = computed(() => chatStore.isScopeSelectorEnabled);
+const hasCustomScopeSelection = computed(() => chatStore.selectedScopeIds.length > 0);
 
 onMounted(() => chatStore.initiateConversation(newUid()));
 </script>
@@ -20,6 +22,37 @@ onMounted(() => chatStore.initiateConversation(newUid()));
     class="md:container md:mx-auto h-full p-4 flex gap-0"
   >
     <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div v-if="chatStore.isAuthEnabled && !chatStore.isAuthenticated" class="mb-3 px-3 py-2 rounded-lg border border-base-300 bg-base-100 text-sm flex items-center justify-between gap-2">
+        <span>{{ $t("chat.signInHint") }}</span>
+        <button type="button" class="btn btn-xs btn-primary" @click="chatStore.login">
+          {{ $t("chat.signIn") }}
+        </button>
+      </div>
+
+      <div v-if="enableScopeSelector" class="mb-3 px-3 py-2 rounded-lg border border-base-300 bg-base-100">
+        <div class="text-xs uppercase tracking-wide opacity-60 mb-2">{{ $t("chat.scopeLabel") }}</div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="btn btn-xs"
+            :class="!hasCustomScopeSelection ? 'btn-primary' : 'btn-outline'"
+            @click="chatStore.selectAllScopes"
+          >
+            {{ $t("chat.scopeAll") }}
+          </button>
+          <button
+            v-for="scope in chatStore.availableScopes"
+            :key="scope.id"
+            type="button"
+            class="btn btn-xs"
+            :class="chatStore.selectedScopeIds.includes(scope.id) ? 'btn-primary' : 'btn-outline'"
+            @click="chatStore.toggleScope(scope.id)"
+          >
+            {{ scope.label }}
+          </button>
+        </div>
+      </div>
+
       <div class="flex-1 mb-4 overflow-hidden">
         <ChatMessages
           :messages="chatStore.chatHistory"

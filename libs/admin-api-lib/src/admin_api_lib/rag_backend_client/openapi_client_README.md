@@ -57,9 +57,10 @@ with admin_api_lib.rag_backend_client.openapi_client.ApiClient(configuration) as
     api_instance = admin_api_lib.rag_backend_client.openapi_client.RagApi(api_client)
     session_id = 'session_id_example' # str | 
     chat_request = admin_api_lib.rag_backend_client.openapi_client.ChatRequest() # ChatRequest | Chat with RAG.
+    scope = ['scope_example'] # List[str] |  (optional)
 
     try:
-        api_response = api_instance.chat(session_id, chat_request)
+        api_response = api_instance.chat(session_id, chat_request, scope=scope)
         print("The response of RagApi->chat:\n")
         pprint(api_response)
     except ApiException as e:

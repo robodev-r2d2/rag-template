@@ -223,6 +223,14 @@ backend:
       VECTOR_DB_COLLECTION_NAME: rag-db
       VECTOR_DB_LOCATION: http://rag-qdrant:6333
       VECTOR_DB_VALIDATE_COLLECTION_CONFIG: false
+      MULTITENANCY_COLLECTION_STRATEGY: single
+      MULTITENANCY_TENANT_COLLECTION_TEMPLATE: tenant_{tenant_id}
+      MULTITENANCY_SHARED_DOMAIN_COLLECTION_TEMPLATE: shared_{domain_id}
+      MULTITENANCY_GLOBAL_COLLECTION_NAME: shared_global
+      KNOWLEDGE_SPACES_STATE_FILE: infrastructure/rag/knowledge-spaces-state.json
+      ALLOW_ANONYMOUS_CHAT: false
+      ENABLE_SPACE_SELECTOR_IN_CHAT: false
+      ENABLE_UPLOAD_SHARING_TARGET: false
     retriever:
       RETRIEVER_THRESHOLD: 0.3
       RETRIEVER_K_DOCUMENTS: 10
@@ -290,6 +298,7 @@ backend:
       KEYCLOAK_CLIENT_ID: "rag-backend"
       KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
       KEYCLOAK_CLIENT_SECRET: "replaceme"
+      KEYCLOAK_ALLOWED_ISSUERS: "http://keycloak.rag.localhost/auth/realms/rag,http://rag-keycloak-http:80/auth/realms/rag"
 
 frontend:
   name: frontend
@@ -314,6 +323,8 @@ frontend:
   envs:
     vite:
       VITE_CHAT_AUTH_ENABLED: true
+      VITE_ENABLE_SPACE_SELECTOR_IN_CHAT: false
+      VITE_ENABLE_UPLOAD_SHARING_TARGET: false
       VITE_API_URL: "http://rag.localhost/api"
       VITE_CHAT_URL: "http://rag.localhost"
       VITE_ADMIN_URL: "http://admin.rag.localhost"
@@ -440,6 +451,7 @@ adminBackend:
       KEYCLOAK_CLIENT_ID: "rag-backend"
       KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
       KEYCLOAK_CLIENT_SECRET: "replaceme"
+      KEYCLOAK_ALLOWED_ISSUERS: "http://keycloak.rag.localhost/auth/realms/rag,http://rag-keycloak-http:80/auth/realms/rag"
 
 extractor:
   replicaCount: 1

@@ -1,5 +1,7 @@
 """Module containing the dependency injection container for managing application dependencies."""
 
+import logging
+
 import qdrant_client
 from qdrant_client import models
 from dependency_injector.containers import DeclarativeContainer
@@ -44,6 +46,7 @@ from rag_core_api.impl.settings.embedder_class_type_settings import (
     EmbedderClassTypeSettings,
 )
 from rag_core_api.impl.settings.error_messages import ErrorMessages
+from rag_core_api.impl.settings.knowledge_space_settings import KnowledgeSpaceSettings
 from rag_core_api.impl.settings.ollama_embedder_settings import OllamaEmbedderSettings
 from rag_core_api.impl.settings.ragas_settings import RagasSettings
 from rag_core_api.impl.settings.reranker_settings import RerankerSettings
@@ -52,6 +55,8 @@ from rag_core_api.impl.settings.sparse_embedder_settings import SparseEmbedderSe
 from rag_core_api.impl.settings.stackit_embedder_settings import StackitEmbedderSettings
 from rag_core_api.impl.settings.vector_db_settings import VectorDatabaseSettings
 from rag_core_api.impl.vector_databases.qdrant_database import QdrantDatabase
+from rag_core_api.knowledge_spaces.access_service import KnowledgeSpaceAccessService
+from rag_core_api.knowledge_spaces.collection_router import KnowledgeSpaceCollectionRouter
 from rag_core_api.mapper.information_piece_mapper import InformationPieceMapper
 from rag_core_api.prompt_templates.answer_generation_prompt import (
     ANSWER_GENERATION_PROMPT,
@@ -71,6 +76,8 @@ from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
 from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
 
+logger = logging.getLogger(__name__)
+
 
 def _build_vectorstore(client, embedding_model, sparse_embedding_model, settings, retrieval_mode):
     """Ensure Qdrant collection exists and return a ready vector store."""
@@ -86,23 +93,35 @@ def _build_vectorstore(client, embedding_model, sparse_embedding_model, settings
         "text-sparse": models.SparseVectorParams(index=models.SparseIndexParams(on_disk=False)),
     }
 
-    # Recreate collection if missing or missing required sparse vectors
-    needs_recreate = False
     if not client.collection_exists(settings.collection_name):
-        needs_recreate = True
-    else:
-        info = client.get_collection(settings.collection_name)
-        current_sparse = set(info.config.params.sparse_vectors.keys()) if info.config.params.sparse_vectors else set()
-        required_sparse = set(sparse_vectors.keys())
-        if not required_sparse.issubset(current_sparse):
-            needs_recreate = True
-
-    if needs_recreate:
-        client.recreate_collection(
+        client.create_collection(
             collection_name=settings.collection_name,
             vectors_config=models.VectorParams(size=dim, distance=models.Distance.COSINE),
             sparse_vectors_config=sparse_vectors,
         )
+    else:
+        info = client.get_collection(settings.collection_name)
+        current_sparse = set(info.config.params.sparse_vectors.keys()) if info.config.params.sparse_vectors else set()
+        required_sparse = set(sparse_vectors.keys())
+        missing_sparse = required_sparse - current_sparse
+        if missing_sparse:
+            logger.warning(
+                "Collection '%s' is missing sparse vectors %s. Attempting non-destructive update.",
+                settings.collection_name,
+                sorted(missing_sparse),
+            )
+            try:
+                # Try to add only missing sparse vectors without recreating collection/data.
+                client.update_collection(
+                    collection_name=settings.collection_name,
+                    sparse_vectors_config={name: sparse_vectors[name] for name in missing_sparse},
+                )
+            except Exception:
+                logger.exception(
+                    "Could not update sparse vector config for collection '%s' non-destructively. "
+                    "Keeping existing collection to avoid data loss.",
+                    settings.collection_name,
+                )
 
     return QdrantVectorStore(
         client=client,
@@ -136,6 +155,7 @@ class DependencyContainer(DeclarativeContainer):
     chat_history_settings = ChatHistorySettings()
     sparse_embedder_settings = SparseEmbedderSettings()
     retry_decorator_settings = RetryDecoratorSettings()
+    knowledge_space_settings = KnowledgeSpaceSettings()
     chat_history_config.from_dict(chat_history_settings.model_dump())
 
     class_selector_config.from_dict(rag_class_type_settings.model_dump() | embedder_class_type_settings.model_dump())
@@ -164,12 +184,21 @@ class DependencyContainer(DeclarativeContainer):
         retrieval_mode=vector_database_settings.retrieval_mode,
     )
 
+    knowledge_space_access_service = Singleton(KnowledgeSpaceAccessService, settings=knowledge_space_settings)
+    knowledge_space_collection_router = Singleton(
+        KnowledgeSpaceCollectionRouter,
+        settings=knowledge_space_settings,
+        vector_settings=vector_database_settings,
+    )
+
     vector_database = Singleton(
         QdrantDatabase,
         settings=vector_database_settings,
         embedder=embedder,
         sparse_embedder=sparse_embedder,
         vectorstore=vectorstore,
+        access_service=knowledge_space_access_service,
+        collection_router=knowledge_space_collection_router,
     )
 
     flashrank_reranker = Singleton(

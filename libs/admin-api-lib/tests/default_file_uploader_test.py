@@ -56,7 +56,7 @@ async def test_handle_file_upload_success(mocks):
     await uploader._handle_source_upload("s3path", upload_filename, "doc1.txt", "http://base")
 
     key_value_store.upsert.assert_any_call(upload_filename, Status.READY)
-    rag_api.upload_information_piece.assert_called_once_with([dummy_rag])
+    rag_api.upload_information_piece.assert_called_once_with([dummy_rag], target_space_id=None)
     document_deleter.adelete_document.assert_awaited_once_with(
         upload_filename,
         remove_from_key_value_store=False,

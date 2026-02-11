@@ -11,17 +11,11 @@ import { routes } from './routes';
 import { authService } from '@shared/auth/auth.service';
 
 export async function setupApp() {
-  // Initialize Auth
-  const user = await authService.getUser();
-  if (!user) {
-    if (window.location.pathname !== '/callback') {
-      await authService.login();
-      return;
-    } else {
-      await authService.handleCallback();
-      window.location.href = '/';
-      return;
-    }
+  // Handle OIDC callback when auth is enabled, but keep chat app accessible without login.
+  if (window.location.pathname === '/callback' && authService.isEnabled()) {
+    await authService.handleCallback();
+    window.location.href = '/';
+    return;
   }
 
   const router = createRouter({

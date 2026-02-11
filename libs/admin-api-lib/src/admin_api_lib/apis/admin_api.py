@@ -153,6 +153,7 @@ async def get_all_documents_status() -> List[DocumentStatus]:
 async def upload_file(
     file: UploadFile,
     request: Request,
+    target_space_id: StrictStr = Query(None, description="Optional logical target space id."),
 ) -> None:
     """
     Upload user selected sources.
@@ -166,7 +167,7 @@ async def upload_file(
     """
     if not BaseAdminApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseAdminApi.subclasses[0]().upload_file(file, request)
+    return await BaseAdminApi.subclasses[0]().upload_file(file, request, target_space_id)
 
 
 @router.post(
@@ -184,6 +185,7 @@ async def upload_file(
 async def upload_source(
     source_type: StrictStr = Query(None, description="The type of the source"),
     name: StrictStr = Query(None, description="The name of the source", alias="name"),
+    target_space_id: StrictStr = Query(None, description="Optional logical target space id."),
     key_value_pair: List[KeyValuePair] = Body(None, description="The key-value pairs for the source"),
 ) -> None:
     """
@@ -200,4 +202,4 @@ async def upload_source(
     """
     if not BaseAdminApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseAdminApi.subclasses[0]().upload_source(source_type, name, key_value_pair)
+    return await BaseAdminApi.subclasses[0]().upload_source(source_type, name, key_value_pair, target_space_id)

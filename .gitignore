@@ -128,11 +128,20 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv*/
+**/.venv*/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Local pip wrapper binaries inside ad-hoc venvs
+**/.venv*/bin/pip
+**/.venv*/bin/pip3
+**/.venv*/bin/pip3.*
+**/.venv*/Scripts/pip.exe
+**/.venv*/Scripts/pip3.exe
 
 # Spyder project settings
 .spyderproject

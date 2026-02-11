@@ -97,6 +97,7 @@ class AdminApi(BaseAdminApi):
         source_type: StrictStr,
         name: StrictStr,
         kwargs: list[KeyValuePair],
+        target_space_id: StrictStr | None = None,
         source_uploader: SourceUploader = Depends(Provide[DependencyContainer.source_uploader]),
     ) -> None:
         """
@@ -117,13 +118,14 @@ class AdminApi(BaseAdminApi):
         -------
         None
         """
-        await source_uploader.upload_source(source_type, name, kwargs)
+        await source_uploader.upload_source(source_type, name, kwargs, target_space_id=target_space_id)
 
     @inject
     async def upload_file(
         self,
         file: UploadFile,
         request: Request,
+        target_space_id: StrictStr | None = None,
         file_uploader: FileUploader = Depends(Provide[DependencyContainer.file_uploader]),
     ) -> None:
         """
@@ -142,7 +144,7 @@ class AdminApi(BaseAdminApi):
         -------
         None
         """
-        await file_uploader.upload_file(str(request.base_url), file)
+        await file_uploader.upload_file(str(request.base_url), file, target_space_id=target_space_id)
 
     @inject
     async def document_reference(

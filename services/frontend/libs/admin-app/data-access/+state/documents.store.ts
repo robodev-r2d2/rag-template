@@ -34,7 +34,7 @@ export const useDocumentsStore = defineStore("chat", () => {
     }
   }
 
-  async function uploadDocument(file: File) {
+  async function uploadDocument(file: File, targetSpaceId?: string) {
     const documentData = mapToUploadDocument(file);
     uploadedDocuments.value.push(documentData);
 
@@ -45,7 +45,7 @@ export const useDocumentsStore = defineStore("chat", () => {
           progress: progress.loaded,
           isProcessing: progress.total === progress.loaded,
         });
-      });
+      }, targetSpaceId);
 
       updateUploadedDocumentData(documentData.id, {
         isCompleted: true,
@@ -73,12 +73,12 @@ export const useDocumentsStore = defineStore("chat", () => {
     }
   };
 
-  const loadConfluence = async (config: ConfluenceConfig) => {
+  const loadConfluence = async (config: ConfluenceConfig, targetSpaceId?: string) => {
     isLoadingConfluence.value = true;
     error.value = null;
     try {
       // provide confluence configuration from frontend
-      await DocumentAPI.loadConfluence(config);
+      await DocumentAPI.loadConfluence(config, targetSpaceId);
       await loadDocuments(); // Refresh the document list after uploading
     } catch (err) {
       if (axios.isAxiosError(err) && err.response && err.response.status === HTTP_STATUS.NOT_IMPLEMENTED) {
@@ -96,12 +96,12 @@ export const useDocumentsStore = defineStore("chat", () => {
     }
   };
 
-  const loadSitemap = async (config: SitemapConfig) => {
+  const loadSitemap = async (config: SitemapConfig, targetSpaceId?: string) => {
     isLoadingSitemap.value = true;
     error.value = null;
     try {
       // provide sitemap configuration from frontend
-      await DocumentAPI.loadSitemap(config);
+      await DocumentAPI.loadSitemap(config, targetSpaceId);
       await loadDocuments(); // Refresh the document list after uploading
     } catch (err) {
       if (axios.isAxiosError(err) && err.response && err.response.status === HTTP_STATUS.NOT_IMPLEMENTED) {
@@ -119,9 +119,9 @@ export const useDocumentsStore = defineStore("chat", () => {
     }
   };
 
-  const uploadDocuments = async (files: File[]) => {
+  const uploadDocuments = async (files: File[], targetSpaceId?: string) => {
     try {
-      const uploads = files.map(uploadDocument);
+      const uploads = files.map((file) => uploadDocument(file, targetSpaceId));
       await Promise.all(uploads);
       await new Promise((resolve) => setTimeout(resolve, 250)); // short delay for the user to see the progress
       await loadDocuments();

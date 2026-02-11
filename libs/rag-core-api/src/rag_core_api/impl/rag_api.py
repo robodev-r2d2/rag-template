@@ -5,7 +5,7 @@ from asyncio import run
 from threading import Thread
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 
 from rag_core_api.api_endpoints.chat import Chat
 from rag_core_api.api_endpoints.information_piece_remover import InformationPieceRemover
@@ -15,10 +15,21 @@ from rag_core_api.api_endpoints.information_piece_uploader import (
 from rag_core_api.apis.rag_api_base import BaseRagApi
 from rag_core_api.dependency_container import DependencyContainer
 from rag_core_api.evaluator.evaluator import Evaluator
+from rag_core_api.knowledge_spaces.access_service import (
+    KnowledgeSpaceAccessDeniedError,
+    KnowledgeSpaceAccessService,
+)
 from rag_core_api.models.chat_request import ChatRequest
 from rag_core_api.models.chat_response import ChatResponse
 from rag_core_api.models.delete_request import DeleteRequest
 from rag_core_api.models.information_piece import InformationPiece
+from rag_core_lib.context import (
+    clear_requested_space_ids,
+    clear_target_space_id,
+    get_principal,
+    set_requested_space_ids,
+    set_target_space_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +53,9 @@ class RagApi(BaseRagApi):
         self,
         session_id: str,
         chat_request: ChatRequest,
+        scope: list[str] | None = None,
         chat_endpoint: Chat = Depends(Provide[DependencyContainer.chat_endpoint]),
+        access_service: KnowledgeSpaceAccessService = Depends(Provide[DependencyContainer.knowledge_space_access_service]),
     ) -> ChatResponse:
         """
         Asynchronously handles the chat endpoint for the RAG API.
@@ -61,7 +74,16 @@ class RagApi(BaseRagApi):
         ChatResponse
             The chat response if the chat task completes successfully.
         """
-        return await chat_endpoint.achat(session_id, chat_request)
+        try:
+            effective_spaces = access_service.resolve_effective_scope(get_principal(), scope)
+        except KnowledgeSpaceAccessDeniedError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+        set_requested_space_ids([space.id for space in effective_spaces])
+        try:
+            return await chat_endpoint.achat(session_id, chat_request)
+        finally:
+            clear_requested_space_ids()
 
     @inject
     async def evaluate(
@@ -94,9 +116,11 @@ class RagApi(BaseRagApi):
     async def remove_information_piece(
         self,
         delete_request: DeleteRequest,
+        target_space_id: str | None = None,
         information_pieces_remover: InformationPieceRemover = Depends(
             Provide[DependencyContainer.information_pieces_remover]
         ),
+        access_service: KnowledgeSpaceAccessService = Depends(Provide[DependencyContainer.knowledge_space_access_service]),
     ) -> None:
         """
         Asynchronously Removes information pieces based on the provided delete request.
@@ -113,15 +137,26 @@ class RagApi(BaseRagApi):
         -------
         None
         """
-        information_pieces_remover.remove_information_piece(delete_request)
+        try:
+            access_service.resolve_delete_scope(get_principal(), target_space_id)
+        except KnowledgeSpaceAccessDeniedError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+        set_target_space_id(target_space_id)
+        try:
+            information_pieces_remover.remove_information_piece(delete_request)
+        finally:
+            clear_target_space_id()
 
     @inject
     async def upload_information_piece(
         self,
         information_piece: list[InformationPiece],
+        target_space_id: str | None = None,
         information_pieces_uploader: InformationPiecesUploader = Depends(
             Provide[DependencyContainer.information_pieces_uploader]
         ),
+        access_service: KnowledgeSpaceAccessService = Depends(Provide[DependencyContainer.knowledge_space_access_service]),
     ) -> None:
         """
         Asynchronously uploads a list of information pieces.
@@ -138,4 +173,13 @@ class RagApi(BaseRagApi):
         -------
         None
         """
-        information_pieces_uploader.upload_information_piece(information_piece)
+        try:
+            access_service.resolve_upload_target(get_principal(), target_space_id)
+        except KnowledgeSpaceAccessDeniedError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+        set_target_space_id(target_space_id)
+        try:
+            information_pieces_uploader.upload_information_piece(information_piece)
+        finally:
+            clear_target_space_id()
