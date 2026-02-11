@@ -1,11 +1,12 @@
-import App from './App.vue';
 import { i18n } from '@i18n/chat';
-import { routes } from './routes';
+import '@shared/style';
+import '@shared/ui';
+import { initializeMarkdown } from "@shared/utils";
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
-import '@shared/ui';
-import { initializeMarkdown } from "@shared/utils";
+import App from './App.vue';
+import { routes } from './routes';
 
 import { authService } from '@shared/auth/auth.service';
 

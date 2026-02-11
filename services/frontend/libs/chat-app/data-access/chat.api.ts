@@ -24,12 +24,24 @@ const apiClient = axios.create({
   baseURL: apiBaseUrl
 });
 
-// Attach Keycloak access token to every chat API request
+const isChatAuthEnabled =
+  String(pickValue(runtimeConfig.VITE_CHAT_AUTH_ENABLED, import.meta.env.VITE_CHAT_AUTH_ENABLED)).toLowerCase() === 'true';
+const authUsername = pickValue(runtimeConfig.VITE_AUTH_USERNAME, import.meta.env.VITE_AUTH_USERNAME);
+const authPassword = pickValue(runtimeConfig.VITE_AUTH_PASSWORD, import.meta.env.VITE_AUTH_PASSWORD);
+if (isChatAuthEnabled && authUsername && authPassword) {
+  apiClient.defaults.auth = {
+    username: authUsername,
+    password: authPassword
+  };
+}
+
+// Prefer Keycloak bearer token when available.
 apiClient.interceptors.request.use(async (config) => {
   const token = await authService.getAccessToken();
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
+    config.auth = undefined;
   }
   return config;
 });

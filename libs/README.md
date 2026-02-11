@@ -328,9 +328,11 @@ For sitemap sources, additional parameters can be provided, e.g.:
 - `web_path`: The URL of the XML sitemap to crawl
 - `filter_urls`: JSON array of URL patterns to filter pages (optional)
 - `header_template`: JSON object for custom HTTP headers (optional)
+- `continue_on_failure`: Whether to skip pages that fail to load instead of aborting the crawl (optional, default: `true`)
 
 Technically, all parameters of the `SitemapLoader` from LangChain can be provided.
 
+The HTML parsing logic can be tuned via the `SITEMAP_PARSER` environment variable (default: `docusaurus`; options: `docusaurus`, `astro`, `generic`). For Helm deployments, set `extractor.envs.sitemap.SITEMAP_PARSER` in `infrastructure/rag/values.yaml`. You can also override the parser per upload by passing a `sitemap_parser` key/value pair (same options) in the `/upload_source` request (available as a dropdown in the admin frontend).
 
 ### 3.3 Replaceable parts
 

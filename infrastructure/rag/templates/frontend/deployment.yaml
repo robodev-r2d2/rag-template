@@ -28,7 +28,7 @@ spec:
             - /bin/sh
             - "-c"
             - "cp -r /app/frontend/. /usr/share/nginx/html && /bin/sh /app/env.sh"
-          timeoutSeconds: 5
+          timeoutSeconds: 30
           periodSeconds: 10
           failureThreshold: 30
         securityContext:

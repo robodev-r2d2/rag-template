@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "admin-api-lib"
-version = "v3.4.0"
+version = "4.2.0"
 description = "The admin backend is responsible for the document management. This includes deletion, upload and returning the source document."
 authors = [
     "STACKIT GmbH & Co. KG <data-ai@stackit.cloud>",
@@ -17,6 +17,11 @@ readme = "README.md"
 license = "Apache-2.0"
 repository = "https://github.com/stackitcloud/rag-template"
 homepage = "https://pypi.org/project/admin-api-lib"
+
+[[tool.poetry.source]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+priority = "explicit"
 
 [tool.flake8]
 exclude= [".eggs", "./libs/*", "./src/admin_api_lib/models/*", "./src/admin_api_lib/rag_backend_client/*", "./src/admin_api_lib/extractor_api_client/*", ".git", ".hg", ".mypy_cache", ".tox", ".venv", ".devcontainer", "venv", "_build", "buck-out", "build", "dist", "**/__init__.py"]
@@ -74,10 +79,12 @@ known_local_folder = ["admin_api_lib", "rag_core_lib"]
 [tool.pylint]
 max-line-length = 120
 
-[tool.poetry.group.dev.dependencies]
-debugpy = "^1.8.14"
+[tool.poetry.group.test.dependencies]
 pytest = "^8.3.5"
+pytest-asyncio = "^1.0.0"
 coverage = "^7.8.0"
+
+[tool.poetry.group.lint.dependencies]
 flake8 = "^7.2.0"
 flake8-black = "^0.4.0"
 flake8-pyproject = "^1.2.3"
@@ -94,34 +101,39 @@ flake8-pytest-style = "^2.1.0"
 pep8-naming = "^0.15.1"
 flake8-eol = "^0.0.8"
 flake8-exceptions = "^0.0.1a0"
-flake8-simplify = "^0.22.0"
+flake8-simplify = "^0.30.0"
 flake8-wot = "^0.2.0"
 flake8-function-order = "^0.0.5"
 flake8-tidy-imports = "^4.10.0"
 black = "^25.1.0"
 flake8-logging-format = "^2024.24.12"
 flake8-docstrings = "^1.7.0"
-pytest-asyncio = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+debugpy = "^1.8.14"
 
 [tool.poetry.dependencies]
-rag-core-lib = {path = "../rag-core-lib"}
+rag-core-lib = "==4.2.0"
 python = "^3.13"
-uvicorn = "^0.37.0"
-fastapi = "^0.121.2"
+uvicorn = "^0.40.0"
+fastapi = "^0.128.0"
 dependency-injector = "^4.46.0"
 python-dateutil = "^2.9.0.post0"
 tenacity = "9.1.2"
 boto3 = "^1.38.10"
 tqdm = "^4.67.1"
-langfuse = "3.6.1"
+langfuse = "^3.10.1"
 redis = "^6.0.0"
 pyyaml = "^6.0.2"
-python-multipart = "^0.0.20"
+python-multipart = "^0.0.22"
 python-keycloak = "^5.0.0"
 pyjwt = "^2.9.0"
-langchain-experimental = "^0.3.4"
+marshmallow = "^3.26.2"
+protobuf = ">=5.29.6,<6.0.0"
+langchain-experimental = "^0.4.0"
 nltk = "^3.9.2"
 starlette = ">=0.49.1"
+langgraph-checkpoint = ">=3.0.0,<4.0.0"
 
 [tool.pytest.ini_options]
 log_cli = true

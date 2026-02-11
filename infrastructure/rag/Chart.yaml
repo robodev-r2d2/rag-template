@@ -5,15 +5,15 @@ description: |
   form rag. rag is an application, where you can upload your own documents and
   ask question about their content and the rag will answer them.
 type: application
-version: 3.4.0
-appVersion: "3.4.0"
+version: 4.1.0
+appVersion: "v4.2.0"
 dependencies:
 - name: langfuse
   repository: https://langfuse.github.io/langfuse-k8s
-  version: "1.5.4"
+  version: "1.5.19"
   condition: features.langfuse.enabled
 - name: qdrant
-  version: 1.15.5
+  version: 1.16.3
   repository: "https://qdrant.github.io/qdrant-helm"
   condition: features.qdrant.enabled
 - name: minio
@@ -27,7 +27,7 @@ dependencies:
   condition: features.keydb.enabled
 - name: ollama
   alias: ollama
-  version: 1.30.0
+  version: 1.40.0
   repository: https://otwld.github.io/ollama-helm/
   condition: features.ollama.enabled
 - name: keycloak

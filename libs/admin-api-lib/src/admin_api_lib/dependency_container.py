@@ -3,7 +3,7 @@
 from admin_api_lib.impl.api_endpoints.default_file_uploader import DefaultFileUploader
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import Configuration, List, Selector, Singleton
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
 from langfuse import Langfuse
 
@@ -112,18 +112,22 @@ class DependencyContainer(DeclarativeContainer):
     chunker_selector_config = Configuration()
 
     # Settings
-    s3_settings = S3Settings()
+    # Instantiate lazily to avoid requiring S3 env vars during import/test collection.
+    s3_settings = Singleton(S3Settings)
     chunker_settings = ChunkerSettings()
     chunker_embedder_type_settings = EmbedderClassTypeSettings()
     stackit_chunker_embedder_settings = StackitEmbedderSettings()
     ollama_chunker_embedder_settings = OllamaEmbedderSettings()
     ollama_settings = OllamaSettings()
-    langfuse_settings = LangfuseSettings()
-    stackit_vllm_settings = StackitVllmSettings()
+    # Instantiate lazily: env vars are required and should not be needed during import/test collection.
+    langfuse_settings = Singleton(LangfuseSettings)
+    # Instantiate lazily: STACKIT_VLLM_API_KEY may not be set for unit tests.
+    stackit_vllm_settings = Singleton(StackitVllmSettings)
     document_extractor_settings = DocumentExtractorSettings()
     rag_class_type_settings = RAGClassTypeSettings()
     rag_api_settings = RAGAPISettings()
-    key_value_store_settings = KeyValueSettings()
+    # Instantiate lazily: USECASE_KEYVALUE_HOST / USECASE_KEYVALUE_PORT are required.
+    key_value_store_settings = Singleton(KeyValueSettings)
     summarizer_settings = SummarizerSettings()
     source_uploader_settings = SourceUploaderSettings()
     retry_decorator_settings = RetryDecoratorSettings()
@@ -195,9 +199,9 @@ class DependencyContainer(DeclarativeContainer):
 
     langfuse = Singleton(
         Langfuse,
-        public_key=langfuse_settings.public_key,
-        secret_key=langfuse_settings.secret_key,
-        host=langfuse_settings.host,
+        public_key=langfuse_settings.provided.public_key,
+        secret_key=langfuse_settings.provided.secret_key,
+        host=langfuse_settings.provided.host,
     )
     summarizer_prompt = SUMMARIZE_PROMPT
 
