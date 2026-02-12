@@ -164,6 +164,7 @@ For further information, please consult the [Infrastructure README](./infrastruc
 
 ### Keycloak and external IdPs
 
+- **Use your existing Keycloak deployment (recommended for production)**: Disable bundled Keycloak (`features.keycloak.enabled: false`) and point frontend/backend Keycloak env vars to your external realm. Also set `KEYCLOAK_ALLOWED_ISSUERS` to exact trusted issuers.
 - **Broker Keycloak to other IdPs (recommended)**: Configure external IdPs (OIDC/SAML/social) in Keycloak, map or hardcode `tenant_id` onto the federated user, and keep the `tenant-id` client scope attached. Keycloak still issues the final token (with `tenant_id`) that the services accept.
 - **Replace Keycloak (not recommended)**: Possible only if your IdP issues OIDC JWTs with `tenant_id`, exposes JWKS in the expected path, and supports a client-credential flow to replace `KeycloakOpenID.token(...)`. This requires code/config changes; brokering is simpler.
 

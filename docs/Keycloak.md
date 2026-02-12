@@ -27,6 +27,30 @@ This template assumes Keycloak is the OIDC provider that issues JWT access token
   - Internal URL for services: `http://rag-keycloak-http:80/auth/`.  
   - Public ingress: `http://keycloak.rag.localhost/auth/`.
 
+## Using an existing Keycloak deployment
+
+Using an external Keycloak is fully supported and is the recommended production setup.
+
+1) Disable the bundled Keycloak chart  
+   - In your Helm values override, set `features.keycloak.enabled: false`.
+2) Point frontends to your external realm issuer  
+   - Set `frontend.envs.vite.VITE_KEYCLOAK_AUTHORITY` to your realm issuer, for example `https://sso.example.com/realms/rag` or `https://sso.example.com/auth/realms/rag` (must match your Keycloak base path).
+   - Keep `frontend.envs.vite.VITE_KEYCLOAK_CLIENT_ID` aligned with your public SPA client (default: `rag-frontend`).
+3) Point backends to your external Keycloak base URL  
+   - Set `backend.envs.keycloak.KEYCLOAK_SERVER_URL` and `adminBackend.envs.keycloak.KEYCLOAK_SERVER_URL` to the base auth URL (for example `https://sso.example.com/` or `https://sso.example.com/auth/`).
+   - Set `KEYCLOAK_REALM_NAME`, `KEYCLOAK_CLIENT_ID`, and `KEYCLOAK_CLIENT_SECRET` for the confidential client used by backend/admin-backend (default client ID: `rag-backend`).
+4) Restrict trusted token issuers  
+   - Set `backend.envs.keycloak.KEYCLOAK_ALLOWED_ISSUERS` and `adminBackend.envs.keycloak.KEYCLOAK_ALLOWED_ISSUERS` to a comma-separated list of exact trusted `iss` values.
+   - Include every issuer format you intentionally accept (for example public ingress issuer and optional in-cluster issuer), but do not use wildcards.
+5) Keep required realm/client setup  
+   - Ensure the `tenant_id` mapper/client-scope is attached as described above.
+   - Ensure both clients exist: `rag-frontend` (public) and `rag-backend` (confidential + service account enabled).
+
+Quick validation after deployment:
+- Open login from frontend and confirm token `iss` equals one entry in `KEYCLOAK_ALLOWED_ISSUERS`.
+- Call an authenticated API and confirm no `401 Invalid token` due to issuer mismatch.
+- Confirm token includes `tenant_id`, otherwise requests will be rejected with `403`.
+
 ## Application settings that must match Keycloak
 
 - **Backend (`services/rag-backend`)**: `KEYCLOAK_SERVER_URL`, `KEYCLOAK_REALM_NAME`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`. Defaults come from Helm under `backend.envs.keycloak` and point to `rag-backend` in realm `rag`.

@@ -55,6 +55,17 @@ With these in place:
 
 > If you enable ingress-level Basic Auth (e.g., via `shared.config.basicAuth.enabled` in the Helm values), the browser will prompt for Basic credentials before the app can reach Keycloak, and the redirect back from Keycloak will be blocked. Keep Basic Auth **disabled** for the frontend ingress when using Keycloak, or scope Basic Auth only to the backend/API hosts.
 
+### Use an existing Keycloak deployment
+
+You do not need to deploy the bundled Keycloak chart.
+
+1. Set `features.keycloak.enabled: false` in your Helm values override.
+2. Set `VITE_KEYCLOAK_AUTHORITY` to your external realm issuer.
+3. Keep `VITE_KEYCLOAK_CLIENT_ID` aligned with your external public client (default `rag-frontend`).
+4. Configure backend/admin keycloak envs (`KEYCLOAK_SERVER_URL`, `KEYCLOAK_REALM_NAME`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `KEYCLOAK_ALLOWED_ISSUERS`) to the same external realm.
+
+For full backend + security details (trusted issuer allowlist, `tenant_id` mapper, and client setup), see [Keycloak usage](../../docs/Keycloak.md).
+
 ### Keycloak setup for backend APIs (rag-backend)
 
 The backend services use client credentials to talk to Keycloak (service account flow). Create a confidential client:
