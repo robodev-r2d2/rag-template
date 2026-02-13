@@ -231,9 +231,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 self._assert_trusted_issuer(decoded.get("iss"))
                 return decoded
             except InvalidSignatureError as sig_err:
-                logger.info(
-                    "JWKS signature failed (kid=%s, alg=%s, source=%s), refreshing and retrying", kid, alg, name
-                )
+                logger.info("JWKS signature failed (source=%s), refreshing and retrying", name)
                 last_error = sig_err
                 try:
                     decoded = _decode_with_keys(refresher(), name + "-refreshed")
