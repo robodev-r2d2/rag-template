@@ -147,6 +147,17 @@ paths:
     post:
       description: Uploads user selected sources.
       operationId: upload_file
+      parameters:
+      - explode: true
+        in: query
+        name: target_space_id
+        required: false
+        schema:
+          description: "Optional logical target space id (e.g. tenant_<id>, shared_<domain>,\
+            \ shared_global)."
+          title: Target Space Id
+          type: string
+        style: form
       requestBody:
         content:
           multipart/form-data:
@@ -189,6 +200,16 @@ paths:
         schema:
           description: ""
           title: Name
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: target_space_id
+        required: false
+        schema:
+          description: "Optional logical target space id (e.g. tenant_<id>, shared_<domain>,\
+            \ shared_global)."
+          title: Target Space Id
           type: string
         style: form
       requestBody:

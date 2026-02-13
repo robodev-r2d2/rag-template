@@ -43,7 +43,10 @@ const defaultSettings: AppSettings = {
 };
 
 // Helper getters that normalize empty strings and whitespace
-const envStr = (val: unknown | undefined, fallback: string): string => {
+const envStr = (val: unknown | undefined, fallback: string, key?: string): string => {
+  if (key && (window as any).config && (window as any).config[key]) {
+    return (window as any).config[key];
+  }
   if (typeof val !== 'string') return fallback;
   const v = val.trim();
   // In production builds we often use placeholder values like "VITE_API_URL" so a runtime
@@ -53,7 +56,12 @@ const envStr = (val: unknown | undefined, fallback: string): string => {
   return v.length > 0 ? v : fallback;
 };
 
-const envBool = (val: unknown | undefined, fallback: boolean): boolean => {
+const envBool = (val: unknown | undefined, fallback: boolean, key?: string): boolean => {
+  if (key && (window as any).config && (window as any).config[key]) {
+    const v = (window as any).config[key].trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
   if (typeof val !== 'string') return fallback;
   const v = val.trim().toLowerCase();
   if (v === 'true') return true;
@@ -65,25 +73,27 @@ const envBool = (val: unknown | undefined, fallback: boolean): boolean => {
 export const settings: AppSettings = {
   bot: {
     // Ensure a sensible default if VITE_BOT_NAME is missing or empty
-    name: envStr(import.meta.env.VITE_BOT_NAME, defaultSettings.bot.name),
+    name: envStr(import.meta.env.VITE_BOT_NAME, defaultSettings.bot.name, 'VITE_BOT_NAME'),
   },
   ui: {
-    logoPath: envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logoPath),
+    logoPath: envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logoPath, 'VITE_UI_LOGO_PATH'),
     logo: {
       // Support specific light/dark envs and fall back to common path or defaults
       light: envStr(
         import.meta.env.VITE_UI_LOGO_PATH_LIGHT,
-        envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logo.light)
+        envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logo.light, 'VITE_UI_LOGO_PATH'),
+        'VITE_UI_LOGO_PATH_LIGHT'
       ),
       dark: envStr(
         import.meta.env.VITE_UI_LOGO_PATH_DARK,
-        envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logo.dark)
+        envStr(import.meta.env.VITE_UI_LOGO_PATH, defaultSettings.ui.logo.dark, 'VITE_UI_LOGO_PATH'),
+        'VITE_UI_LOGO_PATH_DARK'
       ),
     },
     theme: {
-      default: envStr(import.meta.env.VITE_UI_THEME_DEFAULT, defaultSettings.ui.theme.default),
+      default: envStr(import.meta.env.VITE_UI_THEME_DEFAULT, defaultSettings.ui.theme.default, 'VITE_UI_THEME_DEFAULT'),
       options: (() => {
-        const raw = envStr(import.meta.env.VITE_UI_THEME_OPTIONS, "");
+        const raw = envStr(import.meta.env.VITE_UI_THEME_OPTIONS, "", 'VITE_UI_THEME_OPTIONS');
         const parsed = raw
           ? raw.split(",").map((s) => s.trim()).filter(Boolean)
           : [];
@@ -92,6 +102,6 @@ export const settings: AppSettings = {
     },
   },
   features: {
-    useMockData: envBool(import.meta.env.VITE_USE_MOCK_DATA, defaultSettings.features?.useMockData ?? false),
+    useMockData: envBool(import.meta.env.VITE_USE_MOCK_DATA, defaultSettings.features?.useMockData ?? false, 'VITE_USE_MOCK_DATA'),
   },
 };

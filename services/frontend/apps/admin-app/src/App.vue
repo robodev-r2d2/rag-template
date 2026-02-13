@@ -4,8 +4,17 @@ import { NavigationContainer, OnyxIcon } from "@shared/ui";
 import { useI18n } from "vue-i18n";
 import { iconArrowSmallUpRightTop } from "@sit-onyx/icons";
 
+const runtimeConfig = (window as any).config || {};
+const isPlaceholder = (value: string | undefined) =>
+  !value || /^VITE_[A-Z0-9_]+$/.test(value);
+const pickValue = (...candidates: Array<string | undefined>) =>
+  candidates.find((v) => !isPlaceholder(v));
+
 const { t } = useI18n();
-const chatURL = import.meta.env.VITE_CHAT_URL;
+const chatURL = pickValue(
+  runtimeConfig.VITE_CHAT_URL,
+  import.meta.env.VITE_CHAT_URL
+);
 </script>
 
 <template>

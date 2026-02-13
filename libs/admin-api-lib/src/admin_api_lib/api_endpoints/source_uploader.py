@@ -1,7 +1,6 @@
 """Module for the upload source endpoint."""
 
 from abc import abstractmethod
-from typing import Optional
 
 from pydantic import StrictStr
 
@@ -29,7 +28,7 @@ class SourceUploader(UploaderBase):
         source_type: StrictStr,
         name: StrictStr,
         kwargs: list[KeyValuePair],
-        timeout: Optional[float],
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload the parameters for source content extraction.
@@ -42,8 +41,8 @@ class SourceUploader(UploaderBase):
             Display name of the source.
         kwargs : list[KeyValuePair]
             List of KeyValuePair with parameters used for the extraction.
-        timeout : float, optional
-            Timeout for the operation.
+        target_space_id : str, optional
+            Optional logical target space id for storage.
 
         Returns
         -------

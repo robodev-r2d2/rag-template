@@ -22,6 +22,22 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "rag.keycloak.url" -}}
+http://{{ include "rag.fullname" . }}-keycloak-http:80/auth/
+{{- end -}}
+
+{{- define "rag.fullname" -}}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
 {{/* Resolve basic auth credentials from inline values or referenced secrets. */}}
 {{- define "rag.basicAuthCredentials" -}}
 {{- $creds := dict "username" (default "" .Values.shared.secrets.basicAuth.user.value) "password" (default "" .Values.shared.secrets.basicAuth.password.value) -}}

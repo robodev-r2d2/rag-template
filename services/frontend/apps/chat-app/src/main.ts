@@ -8,7 +8,16 @@ import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import { routes } from './routes';
 
+import { authService } from '@shared/auth/auth.service';
+
 export async function setupApp() {
+  // Handle OIDC callback when auth is enabled, but keep chat app accessible without login.
+  if (window.location.pathname === '/callback' && authService.isEnabled()) {
+    await authService.handleCallback();
+    window.location.href = '/';
+    return;
+  }
+
   const router = createRouter({
     history: createWebHistory("/"),
     routes

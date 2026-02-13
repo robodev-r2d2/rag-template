@@ -17,23 +17,51 @@
         "allowImportingTsExtensions": true,
         "jsxImportSource": "vue",
         "module": "esnext",
-        "lib": ["es2020", "dom", "DOM.Iterable"],
+        "lib": [
+            "es2020",
+            "dom",
+            "DOM.Iterable"
+        ],
         "skipLibCheck": true,
         "skipDefaultLibCheck": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "paths": {
-            "@chat": ["libs/chat-app/index.ts"],
-            "@admin": ["libs/admin-app/index.ts"],
-            "@i18n/chat": ["libs/i18n/chat/index.ts"],
-            "@i18n/admin": ["libs/i18n/admin/index.ts"],
-            "@shared/ui": ["libs/shared/ui/index.ts"],
-            "@shared/utils": ["libs/shared/utils/src/index.ts"],
-            "@shared/style": ["libs/shared/global.css"],
-            "@shared/settings": ["./libs/shared/settings.ts"],
-            "@shared/store/theme.store": ["./libs/shared/store/theme.store.ts"]
+            "@chat": [
+                "libs/chat-app/index.ts"
+            ],
+            "@admin": [
+                "libs/admin-app/index.ts"
+            ],
+            "@i18n/chat": [
+                "libs/i18n/chat/index.ts"
+            ],
+            "@i18n/admin": [
+                "libs/i18n/admin/index.ts"
+            ],
+            "@shared/ui": [
+                "libs/shared/ui/index.ts"
+            ],
+            "@shared/utils": [
+                "libs/shared/utils/src/index.ts"
+            ],
+            "@shared/style": [
+                "libs/shared/global.css"
+            ],
+            "@shared/settings": [
+                "./libs/shared/settings.ts"
+            ],
+            "@shared/store/theme.store": [
+                "./libs/shared/store/theme.store.ts"
+            ],
+            "@shared/auth/auth.service": [
+                "./libs/shared/src/auth/auth.service.ts"
+            ]
         }
     },
-    "exclude": ["node_modules", "tmp"]
+    "exclude": [
+        "node_modules",
+        "tmp"
+    ]
 }

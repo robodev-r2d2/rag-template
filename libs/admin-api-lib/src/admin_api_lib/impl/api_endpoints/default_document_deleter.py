@@ -17,6 +17,7 @@ from admin_api_lib.rag_backend_client.openapi_client.models.delete_request impor
 from admin_api_lib.rag_backend_client.openapi_client.models.key_value_pair import (
     KeyValuePair,
 )
+from admin_api_lib.context import get_current_token, set_current_token
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +84,16 @@ class DefaultDocumentDeleter(DocumentDeleter):
         error_messages = ""
         # Delete the document from file service and vector database
         logger.debug("Deleting existing document: %s", identification)
+        token = get_current_token()
+        if token:
+            set_current_token(token)
+            self._rag_api.api_client.configuration.access_token = token
+
         if remove_from_key_value_store:
             self._key_value_store.remove(identification)
 
         if remove_from_storage:
             error_messages = self._delete_from_storage(identification, error_messages)
-
         try:
             self._rag_api.remove_information_piece(
                 DeleteRequest(metadata=[KeyValuePair(key="document", value=json.dumps(identification))])

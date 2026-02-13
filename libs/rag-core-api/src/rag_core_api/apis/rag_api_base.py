@@ -33,6 +33,7 @@ class BaseRagApi:
         self,
         session_id: str,
         chat_request: ChatRequest,
+        scope: List[str] | None = None,
     ) -> ChatResponse:
         """
         Asynchronously handles the chat endpoint for the RAG API.
@@ -45,6 +46,8 @@ class BaseRagApi:
             The session ID for the chat.
         chat_request : ChatRequest, optional
             The chat request payload
+        scope : List[str], optional
+            Optional list of logical space ids to constrain retrieval.
 
         Returns
         -------
@@ -66,6 +69,7 @@ class BaseRagApi:
     async def remove_information_piece(
         self,
         delete_request: DeleteRequest,
+        target_space_id: str | None = None,
     ) -> None:
         """
         Asynchronously removes information pieces.
@@ -76,6 +80,8 @@ class BaseRagApi:
         ----------
         delete_request : DeleteRequest
             The request body containing the details for the information piece to be removed.
+        target_space_id : str, optional
+            Optional logical target space id used to narrow deletion.
 
         Returns
         -------
@@ -85,6 +91,7 @@ class BaseRagApi:
     async def upload_information_piece(
         self,
         information_piece: List[InformationPiece],
+        target_space_id: str | None = None,
     ) -> None:
         """
         Asynchronously uploads information pieces for vectordatabase.
@@ -95,6 +102,8 @@ class BaseRagApi:
         ----------
         information_piece : List[InformationPiece]
             A list of information pieces to be uploaded (default None).
+        target_space_id : str, optional
+            Optional logical target space id (tenant/shared/global).
 
         Returns
         -------

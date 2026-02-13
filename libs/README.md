@@ -41,8 +41,8 @@ The following endpoints are provided by the *backend*:
 
 - `/chat/{session_id}`: The endpoint for chatting.
 - `/evaluate`: Will start the evaluation of the RAG using the provided question-answer pairs.
-- `/information_pieces/remove`: Endpoint to remove documents from the vector database.
-- `/information_pieces/upload`: Endpoint to upload documents into the vector database. These documents need to have been parsed. For simplicity, a *LangChain* Documents like format is used.
+- `/information_pieces/remove`: Endpoint to remove documents from the vector database. Supports optional `target_space_id` query parameter.
+- `/information_pieces/upload`: Endpoint to upload documents into the vector database. Supports optional `target_space_id` query parameter.
 
 ### 1.1 Requirements
 
@@ -59,6 +59,7 @@ make
 #### `/chat/{session_id}`
 
 This endpoint is used for chatting.
+Optional query parameter: `scope` (repeatable), to constrain retrieval to specific logical spaces.
 
 ### `/evaluate`
 
@@ -72,14 +73,38 @@ By default `OpenAI` is used by the evaluation. If you want to use the same LLM-c
 #### `/information_pieces/remove`
 
 Endpoint to remove documents from the vector database.
+Optional query parameter: `target_space_id`.
 
 #### `/information_pieces/upload`
 
 Endpoint to upload documents into the vector database. These documents need to have been parsed. For simplicity, a LangChain Documents like format is used.
+Optional query parameter: `target_space_id`.
 Uploaded documents are required to contain the following metadata:
 
 - `document_url` that points to a download link to the source document.
 - All documents of the type `IMAGE` require the content of the image encoded in base64 in the `base64_image` key.
+
+### 1.5 Knowledge Spaces (Multitenancy)
+
+The backend supports logical spaces with server-side ACL enforcement:
+
+- `tenant_<id>` (tenant-private)
+- `shared_<domain>` (domain shared)
+- `shared_global` (global shared)
+
+Collection strategy is configured via:
+
+- `MULTITENANCY_COLLECTION_STRATEGY=single|hybrid|isolated`
+- `MULTITENANCY_TENANT_COLLECTION_TEMPLATE`
+- `MULTITENANCY_SHARED_DOMAIN_COLLECTION_TEMPLATE`
+- `MULTITENANCY_GLOBAL_COLLECTION_NAME`
+- `KNOWLEDGE_SPACES_STATE_FILE` (operator-controlled enabled/disabled space state)
+
+Feature flags:
+
+- `ENABLE_SPACE_SELECTOR_IN_CHAT`
+- `ENABLE_UPLOAD_SHARING_TARGET`
+- `ALLOW_ANONYMOUS_CHAT` (anonymous chat restricted to global content)
 
 ### 1.3 Replaceable parts
 
@@ -173,12 +198,14 @@ Will return a list of all sources for the chat and their current status.
 
 Files can be uploaded here. This endpoint will process the document in a background and will extract information using the [document-extractor](#3-extractor-api-lib).
 The extracted information will be summarized using a LLM. The summary, as well as the unrefined extracted document, will be uploaded to the [rag-core-api](#1-rag-core-api).
+Optional query parameter: `target_space_id`.
 
 #### `/upload_source`
 
 Loads all the content from an arbitrary non-file source using the [document-extractor](#3-extractor-api-lib).
 The `type` of the source needs to correspond to an extractor in the [document-extractor](#3-extractor-api-lib). Supported types include `confluence` for Confluence pages and `sitemap` for web content via XML sitemaps.
 The extracted information will be summarized using LLM. The summary, as well as the unrefined extracted document, will be uploaded to the [rag-core-api](#1-rag-core-api). An is configured. Defaults to 3600 seconds (1 hour). Can be adjusted by values in the helm chart.
+Optional query parameter: `target_space_id`.
 
 ### 2.3 Replaceable parts
 

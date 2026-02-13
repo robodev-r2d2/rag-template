@@ -18,6 +18,44 @@ features:
     enabled: true
   mcp:
     enabled: true
+  keycloak:
+    enabled: true
+
+keycloak:
+  image:
+    tag: "24.0.1"
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start-dev"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    servicePort: http
+    rules:
+      - host: keycloak.rag.localhost
+        paths:
+          - path: /
+            pathType: Prefix
+
+  postgresql:
+    enabled: false
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: "admin"
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: "admin"
+    - name: KC_PROXY
+      value: "edge"
+    - name: KC_DB
+      value: "postgres"
+    - name: KC_DB_URL
+      value: "jdbc:postgresql://rag-postgresql:5432/keycloak"
+    - name: KC_DB_USERNAME
+      value: "postgres"
+    - name: KC_DB_PASSWORD
+      value: "postgres"
+    - name: KC_HTTP_RELATIVE_PATH
+      value: "/auth"
 
 backend:
 
@@ -185,6 +223,14 @@ backend:
       VECTOR_DB_COLLECTION_NAME: rag-db
       VECTOR_DB_LOCATION: http://rag-qdrant:6333
       VECTOR_DB_VALIDATE_COLLECTION_CONFIG: false
+      MULTITENANCY_COLLECTION_STRATEGY: single
+      MULTITENANCY_TENANT_COLLECTION_TEMPLATE: tenant_{tenant_id}
+      MULTITENANCY_SHARED_DOMAIN_COLLECTION_TEMPLATE: shared_{domain_id}
+      MULTITENANCY_GLOBAL_COLLECTION_NAME: shared_global
+      KNOWLEDGE_SPACES_STATE_FILE: infrastructure/rag/knowledge-spaces-state.json
+      ALLOW_ANONYMOUS_CHAT: false
+      ENABLE_SPACE_SELECTOR_IN_CHAT: false
+      ENABLE_UPLOAD_SHARING_TARGET: false
     retriever:
       RETRIEVER_THRESHOLD: 0.3
       RETRIEVER_K_DOCUMENTS: 10
@@ -205,7 +251,7 @@ backend:
     langfuse:
       LANGFUSE_DATASET_NAME: "rag_test_ds"
       LANGFUSE_DATASET_FILENAME: "/app/test_data.json"
-      LANGFUSE_HOST: "http://rag-langfuse-web:3000" #NOTE: http protocol needs to be defined!
+      LANGFUSE_HOST: "http://rag-langfuse-web:80" #NOTE: http protocol needs to be defined!
     ragClassTypes:
       RAG_CLASS_TYPE_LLM_TYPE: "stackit"
     ragas:
@@ -247,6 +293,12 @@ backend:
     chatHistory:
       CHAT_HISTORY_LIMIT: 4
       CHAT_HISTORY_REVERSE: true
+    keycloak:
+      KEYCLOAK_REALM_NAME: "rag"
+      KEYCLOAK_CLIENT_ID: "rag-backend"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
+      KEYCLOAK_CLIENT_SECRET: "replaceme"
+      KEYCLOAK_ALLOWED_ISSUERS: "http://keycloak.rag.localhost/auth/realms/rag,http://rag-keycloak-http:80/auth/realms/rag"
 
 frontend:
   name: frontend
@@ -271,10 +323,14 @@ frontend:
   envs:
     vite:
       VITE_CHAT_AUTH_ENABLED: true
+      VITE_ENABLE_SPACE_SELECTOR_IN_CHAT: false
+      VITE_ENABLE_UPLOAD_SHARING_TARGET: false
       VITE_API_URL: "http://rag.localhost/api"
       VITE_CHAT_URL: "http://rag.localhost"
       VITE_ADMIN_URL: "http://admin.rag.localhost"
       VITE_ADMIN_API_URL: "http://admin.rag.localhost/api"
+      VITE_KEYCLOAK_AUTHORITY: "http://keycloak.rag.localhost/auth/realms/rag"
+      VITE_KEYCLOAK_CLIENT_ID: "rag-frontend"
 
 adminBackend:
   replicaCount: 1
@@ -390,6 +446,12 @@ adminBackend:
     sourceUploader:
       # Large sitemap ingestions (per-page summaries) can take > 1 hour.
       SOURCE_UPLOADER_TIMEOUT: 3600
+    keycloak:
+      KEYCLOAK_REALM_NAME: "rag"
+      KEYCLOAK_CLIENT_ID: "rag-backend"
+      KEYCLOAK_SERVER_URL: "http://rag-keycloak-http:80/auth/"
+      KEYCLOAK_CLIENT_SECRET: "replaceme"
+      KEYCLOAK_ALLOWED_ISSUERS: "http://keycloak.rag.localhost/auth/realms/rag,http://rag-keycloak-http:80/auth/realms/rag"
 
 extractor:
   replicaCount: 1
@@ -495,7 +557,7 @@ shared:
     - rag.localhost
     - admin.rag.localhost
     basicAuth:
-      enabled: true
+      enabled: false
     tls:
       enabled: true
       host: rag.localhost
@@ -656,6 +718,8 @@ langfuse:
       existingSecret: "" # NOTE: for production use existing secret to fetch password
       secretKeys:
         userPasswordKey: password
+    image:
+      tag: "16"
 
   # Redis Configuration (external KeyDB)
   redis:

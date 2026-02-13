@@ -1,6 +1,6 @@
 """Contains settings regarding Langfuse."""
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -27,3 +27,10 @@ class LangfuseSettings(BaseSettings):
     secret_key: str = Field()
     public_key: str = Field()
     host: str = Field()
+
+    @field_validator("host")
+    @classmethod
+    def fix_host_port(cls, v: str) -> str:
+        if "rag-langfuse-web:3000" in v:
+            return v.replace("rag-langfuse-web:3000", "rag-langfuse-web:80")
+        return v

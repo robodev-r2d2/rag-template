@@ -33,6 +33,9 @@ app = FastAPI(
 
 app.include_router(router)
 
+from rag_core_api.auth import AuthMiddleware
+app.add_middleware(AuthMiddleware)
+
 container = DependencyContainer()
 container.wire(modules=[rag_api])
 app.container = container

@@ -26,6 +26,7 @@ class FileUploader(UploaderBase):
         self,
         base_url: str,
         file: UploadFile,
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload a source file for content extraction.
@@ -36,6 +37,8 @@ class FileUploader(UploaderBase):
             The base url of the service. Is used to determine the download link of the file.
         file : UploadFile
             The file to process.
+        target_space_id : str, optional
+            Optional logical target space id for storage.
 
         Returns
         -------

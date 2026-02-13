@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import { OnyxIcon } from '@shared/ui';
 import { allowedDocumentAccepts, allowedDocumentDisplayNames, isAllowedDocumentType } from '@shared/utils';
+import { authService } from '@shared/auth/auth.service';
 import { iconCircleInformation, iconCloudArrowUp, iconGlobe, iconX } from '@sit-onyx/icons';
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from 'vue-i18n';
 import { useDocumentsStore } from '../data-access/+state/documents.store';
 import { UploadedDocument } from '../models/uploaded-document.model';
@@ -17,6 +18,81 @@ const isInvalidFileType = ref(false);
 const uploadMethod = ref<'file' | 'confluence' | 'sitemap'>('file');
 const allowedFileTypesLabel = allowedDocumentDisplayNames.join(', ');
 const allowedFileInputAccept = allowedDocumentAccepts.join(',');
+const uploadTargetOptions = ref<{ id: string; label: string }[]>([
+  { id: 'my_tenant', label: t('documents.targetMyTenant') },
+]);
+const selectedTargetSpaceId = ref('my_tenant');
+
+const runtimeConfig = (window as any).config || {};
+const isPlaceholder = (value: string | undefined) => !value || /^VITE_[A-Z0-9_]+$/.test(value);
+const pickValue = (...candidates: Array<string | undefined>) => candidates.find((v) => !isPlaceholder(v));
+const uploadSharingFlag = String(
+  pickValue(runtimeConfig.VITE_ENABLE_UPLOAD_SHARING_TARGET, import.meta.env.VITE_ENABLE_UPLOAD_SHARING_TARGET, 'false')
+).toLowerCase() === 'true';
+
+const showUploadTargetSelector = computed(
+  () => uploadSharingFlag && uploadTargetOptions.value.length > 1
+);
+
+const toBool = (value: unknown): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+  return false;
+};
+
+const toStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean);
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.includes(',')
+      ? value.split(',').map((item) => item.trim()).filter(Boolean)
+      : [value.trim()];
+  }
+  return [];
+};
+
+const decodeJwtClaims = (token: string): Record<string, unknown> | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+const resolveTargetSpaceId = (): string | undefined => {
+  if (!showUploadTargetSelector.value) return undefined;
+  if (selectedTargetSpaceId.value === 'my_tenant') return undefined;
+  return selectedTargetSpaceId.value;
+};
+
+onMounted(async () => {
+  if (!uploadSharingFlag) return;
+  const token = await authService.getAccessToken();
+  if (!token) return;
+  const claims = decodeJwtClaims(token);
+  if (!claims) return;
+
+  const options: Array<{ id: string; label: string }> = [{ id: 'my_tenant', label: t('documents.targetMyTenant') }];
+  const domainIds = toStringList(claims.allowed_domain_ids);
+  if (toBool(claims.can_write_shared_domain)) {
+    for (const domainId of domainIds) {
+      options.push({
+        id: `shared_${domainId}`,
+        label: t('documents.targetSharedDomain', { domain: domainId }),
+      });
+    }
+  }
+  if (toBool(claims.can_write_global)) {
+    options.push({ id: 'shared_global', label: t('documents.targetGlobal') });
+  }
+  uploadTargetOptions.value = options;
+});
 
 
 // confluence configuration refs
@@ -48,7 +124,7 @@ const confluenceCql = ref('');
       }
 
     isInvalidFileType.value = false;
-    store.uploadDocuments(files);
+    store.uploadDocuments(files, resolveTargetSpaceId());
 }
 
 const onFileInputChange = (event: Event) => {
@@ -87,7 +163,7 @@ const handleConfluenceUpload = () => {
         url: confluenceUrl.value,
         maxPages: maxPages.value,
         cql: confluenceCql.value,
-    });
+    }, resolveTargetSpaceId());
 }
 
   const handleSitemapUpload = () => {
@@ -104,7 +180,7 @@ const handleConfluenceUpload = () => {
           headerTemplate: sitemapHeaderTemplate.value,
           parser,
           continueOnFailure: sitemapContinueOnFailure.value,
-      });
+      }, resolveTargetSpaceId());
   }
 
 const clearError = () => {
@@ -168,6 +244,16 @@ const getErrorMessage = (errorType: string) => {
                     @click="uploadMethod = 'sitemap'">
                     {{ t('documents.sitemapUpload') }}
                 </a>
+            </div>
+
+            <div v-if="showUploadTargetSelector" class="mb-4 p-3 rounded-box border border-base-300 bg-base-100">
+                <label for="upload-target" class="font-medium text-sm">{{ t('documents.uploadTargetLabel') }}</label>
+                <select id="upload-target" v-model="selectedTargetSpaceId" class="select select-bordered w-full mt-2">
+                    <option v-for="option in uploadTargetOptions" :key="option.id" :value="option.id">
+                        {{ option.label }}
+                    </option>
+                </select>
+                <p class="text-xs opacity-60 mt-1">{{ t('documents.uploadTargetInfo') }}</p>
             </div>
 
             <!-- File upload area -->

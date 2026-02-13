@@ -76,7 +76,7 @@ async def test_handle_source_upload_success(mocks):
     await uploader._handle_source_upload("source1", "type1", [])
 
     key_value_store.upsert.assert_any_call("source1", Status.READY)
-    rag_api.upload_information_piece.assert_called_once_with([dummy_rag_piece])
+    rag_api.upload_information_piece.assert_called_once_with([dummy_rag_piece], target_space_id=None)
     document_deleter.adelete_document.assert_awaited_once_with(
         "source1",
         remove_from_key_value_store=False,
@@ -202,7 +202,7 @@ async def test_upload_source_timeout_error(mocks, monkeypatch):
     source_name = f"{source_type}:{sanitize_document_name(name)}"
 
     # monkey-patch the handler to sleep so that timeout triggers
-    async def fake_handle(self, source_name_arg, source_type_arg, kwargs_arg, upload_version=None):
+    async def fake_handle(self, source_name_arg, source_type_arg, kwargs_arg, **_kwargs):
         await asyncio.sleep(3600)
 
     # patch handler and Thread to trigger timeout synchronously

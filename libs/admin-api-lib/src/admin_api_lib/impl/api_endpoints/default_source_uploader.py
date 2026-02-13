@@ -25,6 +25,8 @@ from admin_api_lib.impl.api_endpoints.upload_pipeline_mixin import (
 )
 from admin_api_lib.information_enhancer.information_enhancer import InformationEnhancer
 from admin_api_lib.utils.utils import sanitize_document_name
+from rag_core_lib.context import get_tenant_id, set_tenant_id
+from admin_api_lib.context import get_current_token, set_current_token
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,7 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
         source_type: StrictStr,
         name: StrictStr,
         kwargs: list[KeyValuePair],
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload the parameters for source content extraction.
@@ -112,10 +115,11 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
             self._check_if_already_in_processing(source_name)
             run_id = self._key_value_store.start_run(source_name)
             self._key_value_store.upsert(source_name, Status.PROCESSING)
-
+            tenant_id = get_tenant_id()
+            token = get_current_token()
             thread = Thread(
                 target=self._thread_worker,
-                args=(source_name, source_type, kwargs, self._settings.timeout, run_id),
+                args=(source_name, source_type, kwargs, self._settings.timeout, run_id, tenant_id, token, target_space_id),
             )
             thread.start()
             self._background_threads.append(thread)
@@ -171,7 +175,23 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
             raise RuntimeError("No information pieces found")
         return information_pieces
 
-    def _thread_worker(self, source_name, source_type, kwargs, timeout, run_id: str):
+    def _thread_worker(
+        self,
+        source_name,
+        source_type,
+        kwargs,
+        timeout,
+        run_id: str,
+        tenant_id=None,
+        token=None,
+        target_space_id: str | None = None,
+    ):
+        if tenant_id:
+            set_tenant_id(tenant_id)
+        if token:
+            set_current_token(token)
+            self._rag_api.api_client.configuration.access_token = token
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -182,6 +202,9 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
                         source_type=source_type,
                         kwargs=kwargs,
                         run_id=run_id,
+                        tenant_id=tenant_id,
+                        token=token,
+                        target_space_id=target_space_id,
                     ),
                     timeout=timeout,
                 )
@@ -212,7 +235,15 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
         source_type: StrictStr,
         kwargs: list[KeyValuePair],
         run_id: str | None = None,
+        tenant_id: str | None = None,
+        token: str | None = None,
+        target_space_id: str | None = None,
     ):
+        if tenant_id:
+            set_tenant_id(tenant_id)
+        if token:
+            set_current_token(token)
+            self._rag_api.api_client.configuration.access_token = token
         try:
             if run_id is None:
                 run_id = self._key_value_store.start_run(source_name)
@@ -230,6 +261,10 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
             )
             self._assert_not_cancelled(source_name, run_id)
 
+            # stamp document id so deletes can filter correctly in vector DB
+            for doc in enhanced_documents:
+                doc.metadata["document"] = source_name
+
             rag_information_pieces = [
                 self._information_mapper.document2rag_information_piece(doc) for doc in enhanced_documents
             ]
@@ -238,7 +273,11 @@ class DefaultSourceUploader(UploadPipelineMixin, SourceUploader):
 
             self._assert_not_cancelled(source_name, run_id)
             # Run blocking RAG API call in thread pool to avoid blocking event loop
-            await asyncio.to_thread(self._rag_api.upload_information_piece, rag_information_pieces)
+            await asyncio.to_thread(
+                self._rag_api.upload_information_piece,
+                rag_information_pieces,
+                target_space_id=target_space_id,
+            )
 
             if self._key_value_store.is_cancelled_or_stale(source_name, run_id):
                 await self._abest_effort_cleanup_cancelled(source_name)

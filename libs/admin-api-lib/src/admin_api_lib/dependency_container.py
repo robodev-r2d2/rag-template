@@ -57,6 +57,8 @@ from admin_api_lib.rag_backend_client.openapi_client.api_client import (
 from admin_api_lib.rag_backend_client.openapi_client.configuration import (
     Configuration as RagConfiguration,
 )
+from admin_api_lib.auth import keycloak_openid
+from admin_api_lib.context import get_current_token
 from rag_core_lib.impl.embeddings.langchain_community_embedder import (
     LangchainCommunityEmbedder,
 )
@@ -75,6 +77,32 @@ from rag_core_lib.impl.settings.stackit_embedder_settings import StackitEmbedder
 from rag_core_lib.impl.settings.stackit_vllm_settings import StackitVllmSettings
 from rag_core_lib.impl.tracers.langfuse_traced_runnable import LangfuseTracedRunnable
 from rag_core_lib.impl.utils.async_threadsafe_semaphore import AsyncThreadsafeSemaphore
+
+
+def create_rag_configuration(host: str) -> RagConfiguration:
+    """Create RAG configuration with access token."""
+    def _access_token_provider() -> str:
+        # Prefer the current user token; fall back to client credentials.
+        user_token = get_current_token()
+        if user_token:
+            return user_token
+        token = keycloak_openid.token(grant_type="client_credentials")
+        return token.get("access_token")
+
+    class _TokenRefreshingRagConfiguration(RagConfiguration):
+        def auth_settings(self):
+            token = _access_token_provider()
+            return {
+                "BearerAuth": {
+                    "type": "bearer",
+                    "in": "header",
+                    "format": "JWT",
+                    "key": "Authorization",
+                    "value": "Bearer " + token,
+                }
+            }
+
+    return _TokenRefreshingRagConfiguration(host=host)
 
 
 class DependencyContainer(DeclarativeContainer):
@@ -153,7 +181,7 @@ class DependencyContainer(DeclarativeContainer):
     document_extractor_api_client = Singleton(ApiClient, extractor_api_configuration)
     document_extractor = Singleton(ExtractorApi, document_extractor_api_client)
 
-    rag_api_configuration = Singleton(RagConfiguration, host=rag_api_settings.host)
+    rag_api_configuration = Singleton(create_rag_configuration, host=rag_api_settings.host)
     rag_api_client = Singleton(RagApiClient, configuration=rag_api_configuration)
     rag_api = Singleton(RagApi, rag_api_client)
 

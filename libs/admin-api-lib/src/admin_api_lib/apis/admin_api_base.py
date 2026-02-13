@@ -81,6 +81,7 @@ class BaseAdminApi:
         source_type: StrictStr,
         name: StrictStr,
         key_value_pair: List[KeyValuePair],
+        target_space_id: StrictStr | None = None,
     ) -> None:
         """
         Asynchronously uploads user selected source.
@@ -93,6 +94,8 @@ class BaseAdminApi:
             Display name of the source.
         key_value_pair : list[KeyValuePair]
             List of KeyValuePair with parameters used for the extraction.
+        target_space_id : str, optional
+            Optional logical target space id for storage.
 
         Returns
         -------
@@ -103,6 +106,7 @@ class BaseAdminApi:
         self,
         file: UploadFile,
         request: Request,
+        target_space_id: StrictStr | None = None,
     ) -> None:
         """
         Asynchronously uploads user-selected documents.
@@ -113,6 +117,8 @@ class BaseAdminApi:
             The file object containing the source documents to be uploaded.
         request : Request
             The request object containing metadata about the upload request.
+        target_space_id : str, optional
+            Optional logical target space id for storage.
 
         Returns
         -------

@@ -26,6 +26,8 @@ from admin_api_lib.impl.api_endpoints.upload_pipeline_mixin import (
 )
 from admin_api_lib.information_enhancer.information_enhancer import InformationEnhancer
 from admin_api_lib.utils.utils import sanitize_document_name
+from rag_core_lib.context import get_tenant_id, set_tenant_id
+from admin_api_lib.context import get_current_token, set_current_token
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +90,7 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
         self,
         base_url: str,
         file: UploadFile,
+        target_space_id: str | None = None,
     ) -> None:
         """
         Upload a source file for content extraction.
@@ -117,6 +120,8 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
             content = await file.read()
             s3_path = await self._asave_new_document(content, file.filename, source_name)
 
+            tenant_id = get_tenant_id()
+            token = get_current_token()
             task = asyncio.create_task(
                 self._handle_source_upload(
                     s3_path,
@@ -124,6 +129,9 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
                     file.filename,
                     base_url,
                     run_id=run_id,
+                    tenant_id=tenant_id,
+                    token=token,
+                    target_space_id=target_space_id,
                 )
             )
             task.add_done_callback(self._log_task_exception)
@@ -199,7 +207,16 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
         file_name: str,
         base_url: str,
         run_id: str | None = None,
+        tenant_id: str | None = None,
+        token: str | None = None,
+        target_space_id: str | None = None,
     ):
+        if tenant_id:
+            set_tenant_id(tenant_id)
+        if token:
+            set_current_token(token)
+            # ensure the rag_api client uses the caller's token for this operation
+            self._rag_api.api_client.configuration.access_token = token
         if run_id is None:
             run_id = self._key_value_store.start_run(source_name)
         try:
@@ -222,7 +239,11 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
 
             self._assert_not_cancelled(source_name, run_id)
             # Run blocking RAG API call in thread pool to avoid blocking event loop
-            await asyncio.to_thread(self._rag_api.upload_information_piece, rag_information_pieces)
+            await asyncio.to_thread(
+                self._rag_api.upload_information_piece,
+                rag_information_pieces,
+                target_space_id=target_space_id,
+            )
 
             if self._key_value_store.is_cancelled_or_stale(source_name, run_id):
                 await self._abest_effort_cleanup_cancelled(source_name)
@@ -254,6 +275,7 @@ class DefaultFileUploader(UploadPipelineMixin, FileUploader):
                     "chunk": idx,
                     "chunk_length": len(chunk.page_content),
                     "document_url": document_url,
+                    "document": f"file:{file_name}",
                 }
             )
 

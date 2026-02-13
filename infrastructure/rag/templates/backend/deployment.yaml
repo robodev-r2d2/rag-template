@@ -146,3 +146,11 @@ spec:
         env:
           - name: PYTHONPATH
             value: {{ .Values.backend.pythonPathEnv.PYTHONPATH }}
+          - name: KEYCLOAK_SERVER_URL
+            value: {{ .Values.backend.envs.keycloak.KEYCLOAK_SERVER_URL | quote }}
+          - name: KEYCLOAK_REALM_NAME
+            value: {{ .Values.backend.envs.keycloak.KEYCLOAK_REALM_NAME | quote }}
+          - name: KEYCLOAK_CLIENT_ID
+            value: {{ .Values.backend.envs.keycloak.KEYCLOAK_CLIENT_ID | quote }}
+          - name: KEYCLOAK_CLIENT_SECRET
+            value: {{ .Values.backend.envs.keycloak.KEYCLOAK_CLIENT_SECRET | quote }}

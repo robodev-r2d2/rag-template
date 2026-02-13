@@ -61,6 +61,8 @@ Welcome to the STACKIT RAG Template! This is a basic example of how to use the R
 
 **Security**: Basic authentication for secure access.
 
+**Knowledge Spaces**: Optional multitenant logical spaces (`tenant`, `shared_domain`, `global`) with configurable Qdrant collection strategies (`single`, `hybrid`, `isolated`).
+
 **Deployment**: Options for both local and production
 environments.
 
@@ -159,6 +161,15 @@ For further information, please consult the [Frontend README](./services/fronten
 Contains the Helm chart and other files related to infrastructure and deployment, including Kubernetes manifests, Terraform scripts, and cluster setup tools.
 
 For further information, please consult the [Infrastructure README](./infrastructure/README.md).
+
+### Keycloak and external IdPs
+
+- **Use your existing Keycloak deployment (recommended for production)**: Disable bundled Keycloak (`features.keycloak.enabled: false`) and point frontend/backend Keycloak env vars to your external realm. Also set `KEYCLOAK_ALLOWED_ISSUERS` to exact trusted issuers.
+- **Broker Keycloak to other IdPs (recommended)**: Configure external IdPs (OIDC/SAML/social) in Keycloak, map or hardcode `tenant_id` onto the federated user, and keep the `tenant-id` client scope attached. Keycloak still issues the final token (with `tenant_id`) that the services accept.
+- **Replace Keycloak (not recommended)**: Possible only if your IdP issues OIDC JWTs with `tenant_id`, exposes JWKS in the expected path, and supports a client-credential flow to replace `KeycloakOpenID.token(...)`. This requires code/config changes; brokering is simpler.
+
+See `docs/Keycloak.md` for step-by-step setup and brokering details.
+See `docs/KnowledgeSpaces.md` for multitenancy, space-scoped retrieval/upload behavior, migration/backfill, and ops commands.
 
 #### 1.1.7 Libs
 

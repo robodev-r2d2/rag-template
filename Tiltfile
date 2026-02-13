@@ -551,7 +551,8 @@ value_override = [
     "features.minio.enabled=true",
     "shared.config.tls.enabled=false",
     "shared.ssl=false",
-    "shared.config.basicAuth.enabled=true",
+    # Disable ingress basic auth when using Keycloak; otherwise the browser blocks the redirect flow.
+    "shared.config.basicAuth.enabled=false",
     "features.mcp.enabled=true",
     # ingress host names
     "backend.ingress.host.name=rag.localhost",
@@ -785,4 +786,16 @@ local_resource(
     auto_init=False,
     trigger_mode=TRIGGER_MODE_MANUAL,
     allow_parallel=True,
+)
+
+########################################################################################################################
+###################################### port forwarding keycloak  #######################################################
+########################################################################################################################
+
+k8s_resource(
+    "rag-keycloak",
+    links=[
+        link("http://keycloak.rag.localhost/auth", "Keycloak"),
+    ],
+    labels=["infrastructure"],
 )
