@@ -89,7 +89,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     def _build_trusted_issuers(self) -> set[str]:
         trusted = self._default_trusted_issuers() | self._configured_trusted_issuers()
-        logger.info("Configured trusted token issuers: %s", sorted(trusted))
+        logger.info("Configured trusted token issuers count: %d", len(trusted))
         return trusted
 
     def _is_trusted_issuer(self, issuer: str | None) -> bool:
